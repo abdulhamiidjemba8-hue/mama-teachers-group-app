@@ -12,6 +12,15 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
+
+      # Save your code, then re-create Android folder with v2 embedding
+      - run: cp lib/main.dart /tmp/main.dart
+      - run: cp pubspec.yaml /tmp/pubspec.yaml
+      - run: flutter create . --project-name mama_teachers_group --org com.ihsaanu.mamateachers --platforms android
+      - run: cp /tmp/main.dart lib/main.dart
+      - run: cp /tmp/pubspec.yaml pubspec.yaml
+      - run: cp assets/logo.png assets/logo.png || true
+
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
