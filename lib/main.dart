@@ -20,7 +20,7 @@ void main() async {
 }
 
 const String devName = "Jemba Abdulhamiid";
-const String adText = "🚀 NEED AN APP FOR YOUR GROUP, BUSINESS OR SCHOOL?\n\nIhsaanu Tech builds simple, beautiful & affordable Apps!\n\n✅ Cash Round / Savings Group Apps\n✅ Business Apps\n✅ School & Church Apps\n✅ Login, Dashboard, Reports & PDF Sharing\n\nLike the Mama Teachers Group App - we can build one for YOU too!\n\n📞 Call / WhatsApp: 0709157254 / 0785831666\n💻 By Ihsaanu Tech - We Build Your Ideas Into Apps\n\n#IhsaanuTech #AppDeveloper #Uganda";
+const String adText = "🚀 NEED AN APP FOR YOUR GROUP, BUSINESS OR SCHOOL?\n\nIhsaanu Tech builds simple, beautiful & affordable Apps!\n\n✅ Cash Round / Savings Group Apps\n✅ Business Apps\n✅ School & Shop Apps\n✅ Login, Dashboard, Reports & PDF Sharing\n\nLike the Mama Teachers Group App - we can build one for YOU too!\n\n📞 Call / WhatsApp: 0709157254 / 0785831666\n💻 By Ihsaanu Tech - We Build Your Ideas Into Apps\n\n#IhsaanuTech #AppDeveloper #Uganda";
 
 class CashGroup {
   String id; String title; int contribution; String cycle; Color color; Color soft;
