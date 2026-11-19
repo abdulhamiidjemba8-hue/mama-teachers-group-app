@@ -62,34 +62,60 @@ class MamaApp extends StatelessWidget {
 class Splash extends StatefulWidget { const Splash({super.key}); @override State<Splash> createState() => _Splash(); }
 class _Splash extends State<Splash> {
   @override void initState() { super.initState(); _go(); }
-  Future<void> _go() async {
+ Future<void> _go() async {
+  try {
     await Future.delayed(const Duration(seconds: 2));
     var prefs = await SharedPreferences.getInstance();
     bool first = prefs.getBool('first_open') ?? true;
     String? saved = prefs.getString('saved_name');
+
     if (first || saved == null || saved.isEmpty) {
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Login()));
       return;
     }
+
+    // Biometrics - don't let it block
     try {
       final auth = LocalAuthentication();
       bool can = await auth.canCheckBiometrics || await auth.isDeviceSupported();
       if (can) {
-        bool ok = await auth.authenticate(localizedReason: 'Unlock Mama Teachers Group with your phone lock');
-        if (!ok) return;
+        bool ok = await auth.authenticate(localizedReason: 'Unlock Mama Teachers Group with your phone lock').timeout(const Duration(seconds: 10));
+        if (!ok) {
+          if (!mounted) return;
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Login()));
+          return;
+        }
       }
     } catch (_) {}
-    var q = await FirebaseFirestore.instance.collection('members').where('fullName', isEqualTo: saved).limit(1).get();
-    if (q.docs.isEmpty) {
+
+    // Firestore - with timeout, if it fails go to Login, don't stay white
+    try {
+      var q = await FirebaseFirestore.instance
+          .collection('members')
+          .where('fullName', isEqualTo: saved)
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (q.docs.isEmpty) {
+        if (!mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Login()));
+        return;
+      }
+      var m = q.docs.first.data();
+      if (!mounted) return;
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => GroupList(currentUser: m, docId: q.docs.first.id)));
+    } catch (_) {
+      // No internet / Firestore error - still go to Login, not white screen
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Login()));
-      return;
     }
-    var m = q.docs.first.data();
+  } catch (_) {
     if (!mounted) return;
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => GroupList(currentUser: m, docId: q.docs.first.id)));
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Login()));
   }
+}
   @override Widget build(BuildContext context) => Scaffold(backgroundColor: Colors.white, body: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
     Image.asset('assets/logo.png', width: 170, height: 170, errorBuilder: (_, __, ___) => const Icon(Icons.groups, size: 120, color: Colors.pink)),
     const SizedBox(height: 16), const Text("MAMA TEACHERS GROUP", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.pink)),
