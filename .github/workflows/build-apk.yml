@@ -44,13 +44,16 @@ jobs:
             grep -q "google-services" android/app/build.gradle || sed -i 's|id "com.android.application"|id "com.android.application"\n    id "com.google.gms.google-services"|' android/app/build.gradle
             cat android/app/build.gradle
           fi
-      # FIX 2b: Force package name to match Firebase
+      # FIX 2b: Auto-match package name to google-services.json
       - run: |
+          cat google-services.json | grep package_name
+          PACKAGE=$(grep -o '"package_name": "[^"]*"' google-services.json | head -1 | cut -d'"' -f4)
+          echo "Firebase package is: $PACKAGE"
           if [ -f android/app/build.gradle.kts ]; then
-            sed -i 's|applicationId = ".*"|applicationId = "com.ihsaanu.mamateachers"|' android/app/build.gradle.kts
+            sed -i "s|applicationId = \".*\"|applicationId = \"$PACKAGE\"|" android/app/build.gradle.kts
             grep -n "applicationId" android/app/build.gradle.kts
           else
-            sed -i 's|applicationId ".*"|applicationId "com.ihsaanu.mamateachers"|' android/app/build.gradle
+            sed -i "s|applicationId \".*\"|applicationId \"$PACKAGE\"|" android/app/build.gradle
             grep -n "applicationId" android/app/build.gradle
           fi
       # FIX 3: Make your MTG logo the phone icon
