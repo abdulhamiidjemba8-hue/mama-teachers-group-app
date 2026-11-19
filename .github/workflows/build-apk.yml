@@ -19,9 +19,23 @@ jobs:
       - run: flutter create . --project-name mama_teachers_group --org com.ihsaanu.mamateachers --platforms android
       - run: cp /tmp/main.dart lib/main.dart
       - run: cp /tmp/pubspec.yaml pubspec.yaml
-      - run: cp assets/logo.png assets/logo.png || true
 
+      # FIX 1: Restore Firebase config - this was deleting your Firebase!
+      - run: cp google-services.json android/app/google-services.json
+      - run: ls -l android/app/google-services.json
+
+      # FIX 2: Add Google Services plugin so Firebase works
+      - run: |
+          grep -q "com.google.gms.google-services" android/settings.gradle || sed -i "s|id \"com.android.application\" version \"8.*\" apply false|id \"com.android.application\" version \"8.7.0\" apply false\n    id \"com.google.gms.google-services\" version \"4.4.2\" apply false|" android/settings.gradle
+          cat android/settings.gradle
+      - run: |
+          grep -q "google-services" android/app/build.gradle || echo 'plugins { id "com.google.gms.google-services" }' >> android/app/build.gradle
+          cat android/app/build.gradle
+
+      # FIX 3: Make your MTG logo the phone icon
       - run: flutter pub get
+      - run: flutter pub run flutter_launcher_icons || dart run flutter_launcher_icons || true
+
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
