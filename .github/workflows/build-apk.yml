@@ -16,7 +16,7 @@ jobs:
       # Save your code, then re-create Android folder with v2 embedding
       - run: cp lib/main.dart /tmp/main.dart
       - run: cp pubspec.yaml /tmp/pubspec.yaml
-      - run: flutter create . --project-name mama_teachers_group --org com.ihsaanu.mamateachers --platforms android
+            - run: flutter create . --project-name mama_teachers_group --org com.ihsaanu.mamateachersgroup --platforms android
       - run: cp /tmp/main.dart lib/main.dart
       - run: cp /tmp/pubspec.yaml pubspec.yaml
 
