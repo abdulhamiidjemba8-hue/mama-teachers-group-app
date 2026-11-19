@@ -130,29 +130,41 @@ class _Login extends State<Login> {
   String? cat; String? role;
   final cats = ["A", "B", "C", "A & B", "A & C", "B & C", "All"];
   final roles = ["Ch.person", "Secretary", "Treasure", "Member"];
-  Future<void> login() async {
+   Future<void> login() async {
     if (nameC.text.trim().isEmpty || phoneC.text.trim().isEmpty || cat == null || role == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Fill all boxes")));
       return;
     }
-    var prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('first_open', false);
-    await prefs.setString('saved_name', nameC.text.trim());
-    var db = FirebaseFirestore.instance;
-    var q = await db.collection('members').where('fullName', isEqualTo: nameC.text.trim()).limit(1).get();
-    Map<String, dynamic> data = {'fullName': nameC.text.trim(), 'phone': phoneC.text.trim(), 'category': cat, 'role': role, 'updatedAt': FieldValue.serverTimestamp()};
-    String docId;
-    if (q.docs.isEmpty) {
-      data['createdAt'] = FieldValue.serverTimestamp();
-      var d = await db.collection('members').add(data);
-      docId = d.id;
-    } else {
-      docId = q.docs.first.id;
-      await db.collection('members').doc(docId).update(data);
-      data = {...q.docs.first.data(), ...data};
+    try {
+      var prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('first_open', false);
+      await prefs.setString('saved_name', nameC.text.trim());
+
+      var db = FirebaseFirestore.instance;
+      Map<String, dynamic> data = {'fullName': nameC.text.trim(), 'phone': phoneC.text.trim(), 'category': cat, 'role': role, 'updatedAt': FieldValue.serverTimestamp()};
+      String docId = 'local';
+
+      try {
+        var q = await db.collection('members').where('fullName', isEqualTo: nameC.text.trim()).limit(1).get().timeout(const Duration(seconds: 5));
+        if (q.docs.isEmpty) {
+          data['createdAt'] = FieldValue.serverTimestamp();
+          var d = await db.collection('members').add(data).timeout(const Duration(seconds: 5));
+          docId = d.id;
+        } else {
+          docId = q.docs.first.id;
+          await db.collection('members').doc(docId).update(data).timeout(const Duration(seconds: 5));
+          data = {...q.docs.first.data(), ...data};
+        }
+      } catch (_) {
+        // Firebase failed - still enter with local data, don't get stuck
+      }
+
+      if (!mounted) return;
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => GroupList(currentUser: data, docId: docId)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
-    if (!mounted) return;
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => GroupList(currentUser: data, docId: docId)));
   }
   @override Widget build(BuildContext context) => Scaffold(backgroundColor: Colors.white, body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(children: [
     const SizedBox(height: 36),
