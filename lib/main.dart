@@ -11,7 +11,11 @@ import 'package:screenshot/screenshot.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    print("Firebase failed, but app will still open: $e");
+  }
   runApp(const MamaApp());
 }
 
