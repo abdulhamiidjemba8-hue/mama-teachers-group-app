@@ -681,6 +681,60 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
         });
       }));
   }
+  Widget buildLive(List<QueryDocumentSnapshot> members, Set<String> paidIds) {
+    String r = currentRoundId(widget.groupId);
+    int target = cashGroups[widget.groupId]!.contribution;
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('partial_payments').where('groupId', isEqualTo: widget.groupId).where('roundId', isEqualTo: r).snapshots(),
+      builder: (ctx, partSnap) {
+        Map<String, int> paidMap = {};
+        if (partSnap.hasData) {
+          for (var d in partSnap.data!.docs) {
+            var p = d.data() as Map<String, dynamic>;
+            paidMap[p['memberId']] = p['paidSoFar'] ?? 0;
+          }
+        }
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('cash_received').where('groupId', isEqualTo: widget.groupId).where('roundId', isEqualTo: r).snapshots(),
+          builder: (ctx2, recSnap) {
+            Set<String> recIds = {};
+            String receiver = "No one yet";
+            if (recSnap.hasData && recSnap.data!.docs.isNotEmpty) {
+              for (var d in recSnap.data!.docs) {
+                var p = d.data() as Map<String, dynamic>;
+                recIds.add(p['memberId']);
+                receiver = p['memberName'] ?? receiver;
+              }
+            }
+            int paidCount = members.where((d) => paidIds.contains(d.id)).length;
+            return ListView(children: [
+              Container(padding: const EdgeInsets.all(14), color: cashGroups[widget.groupId]!.soft, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text("📡 LIVE DATA - Group ${widget.groupId} - ${roundLabel(widget.groupId)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 6),
+                Text("👥 Members: ${members.length}  |  ✅ Paid: $paidCount  |  ❌ Not Paid: ${members.length - paidCount}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text("💰 Collected: ${fmt(paidCount * target)} UGX / ${fmt(members.length * target)} UGX"),
+                Text("🎁 Receiver: $receiver"),
+                const Text("Updates automatically - No need to refresh", style: TextStyle(color: Colors.grey, fontSize: 12)),
+              ])),
+              ...members.map((d) {
+                var m = d.data() as Map<String, dynamic>;
+                bool isPaid = paidIds.contains(d.id);
+                bool isRec = recIds.contains(d.id);
+                int soFar = paidMap[d.id] ?? 0;
+                return Card(color: isPaid ? Colors.green[50] : Colors.white, child: ListTile(
+                  leading: CircleAvatar(backgroundColor: isPaid ? Colors.green : Colors.red, child: Text((m['fullName'] ?? '?')[0], style: const TextStyle(color: Colors.white))),
+                  title: Text(m['fullName'] ?? ''),
+                  subtitle: Text("${m['role']} • ${m['phone']}\nSecretary recorded: ${fmt(soFar)} / ${fmt(target)} ${isRec ? '• 🎁 RECEIVED' : ''}"),
+                  isThreeLine: true,
+                  trailing: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: isPaid ? Colors.green : Colors.red, borderRadius: BorderRadius.circular(6)), child: Text(isPaid ? "PAID ✅" : "NOT PAID ❌", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
+                ));
+              }),
+            ]);
+          },
+        );
+      },
+    );
+  }
   Widget buildAll(List<QueryDocumentSnapshot> members) => ListView(children: [
     Padding(padding: const EdgeInsets.all(12), child: Text("EXECUTIVE COMMITTEE", style: TextStyle(fontWeight: FontWeight.bold, color: cashGroups[widget.groupId]!.color))),
     ...members.where((d) => (d.data() as Map<String, dynamic>)['role'] != 'Member').map((d) { var m = d.data() as Map<String, dynamic>; return Card(color: Colors.amber[50], child: ListTile(leading: CircleAvatar(child: Text((m['fullName'] ?? '')[0])), title: Text(m['fullName'] ?? ''), subtitle: Text("${m['role']} • ${m['phone']}"), trailing: Chip(label: Text(m['role'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 11)), backgroundColor: Colors.orange))); }),
