@@ -458,20 +458,72 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     var f = File("${dir.path}/receipt_${DateTime.now().millisecondsSinceEpoch}.png");
     await f.writeAsBytes(img);
     await Share.shareXFiles([XFile(f.path)], text: "Mama Teachers Group Receipt - $type for $name - $amt UGX");
+  Future<void> aiInfo() async {
+  String gid = widget.groupId;
+  String r = currentRoundId(gid);
+  int target = cashGroups[gid]!.contribution;
+
+  // Show loading first
+  showDialog(context: context, barrierDismissible: false, builder: (_) => const AlertDialog(content: Row(children: [CircularProgressIndicator(), SizedBox(width: 12), Text("AI is checking Group data...")])));
+
+  try {
+    var membersSnap = await FirebaseFirestore.instance.collection('members').get();
+    var allInGroup = membersSnap.docs.where((d) => inGroup(d.data() as Map<String, dynamic>, gid)).toList();
+    int totalMembers = allInGroup.length;
+
+    var paidSnap = await FirebaseFirestore.instance.collection('cash_payments').where('groupId', isEqualTo: gid).where('roundId', isEqualTo: r).get();
+    int paidCount = paidSnap.docs.length;
+    int notPaidCount = totalMembers - paidCount;
+    if (notPaidCount < 0) notPaidCount = 0;
+    int totalCollected = paidCount * target;
+
+    var recSnap = await FirebaseFirestore.instance.collection('cash_received').where('groupId', isEqualTo: gid).where('roundId', isEqualTo: r).get();
+    String receiver = recSnap.docs.isEmpty ? "No one yet" : (recSnap.docs.first.data() as Map<String, dynamic>)['memberName'] ?? "Unknown";
+
+    var partialSnap = await FirebaseFirestore.instance.collection('partial_payments').where('groupId', isEqualTo: gid).where('roundId', isEqualTo: r).get();
+    int partialTotal = 0;
+    for (var d in partialSnap.docs) { partialTotal += ((d.data() as Map<String, dynamic>)['paidSoFar'] ?? 0) as int; }
+
+    // Not paid names - first 5
+    Set<String> paidIds = paidSnap.docs.map((d) => (d.data() as Map<String, dynamic>)['memberId'] as String).toSet();
+    var notPaidNames = allInGroup.where((d) => !paidIds.contains(d.id)).map((d) => (d.data() as Map<String, dynamic>)['fullName'] ?? '').take(5).toList();
+
+    if (!mounted) return;
+    Navigator.pop(context); // close loading
+
+    showDialog(context: context, builder: (_) => AlertDialog(
+      title: Row(children: [const Icon(Icons.smart_toy, color: Colors.pink), const SizedBox(width: 8), Text("AI - Group $gid Live Info")]),
+      content: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text("🤖 Hello! I am Mama Teachers AI.", style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        Text("📅 Round: ${roundLabel(gid)}"),
+        Text("👥 Total Members in Group $gid: $totalMembers"),
+        const Divider(),
+        Text("✅ Paid: $paidCount of $totalMembers", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+        Text("❌ Not Paid: $notPaidCount", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        Text("💰 Total Collected This Round: ${fmt(totalCollected)} UGX"),
+        Text("📝 Secretary Partial Total Recorded: ${fmt(partialTotal)} UGX"),
+        Text("🎁 Receiver This Round: $receiver"),
+        Text("🎯 Contribution: ${fmt(target)} UGX - ${cashGroups[gid]!.cycle}"),
+        const SizedBox(height: 10),
+        if (notPaidNames.isNotEmpty) ...[
+          const Text("Who has not paid yet:", style: TextStyle(fontWeight: FontWeight.bold)),
+          ...notPaidNames.map((n) => Text("• $n")),
+          if (notPaidCount > 5) Text("... and ${notPaidCount - 5} more"),
+        ] else const Text("🎉 Everyone has paid this round!"),
+        const SizedBox(height: 10),
+        Text("You are: ${widget.currentUser['fullName']} - ${widget.currentUser['role']} in Group $gid"),
+        const SizedBox(height: 10),
+        const Text("How it works: 1. Secretary records partial cash. 2. When full amount reached, executive marks PAID. 3. One PAID member receives total and is marked RECEIVED. 4. Next round starts automatically.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+      ])),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
+    ));
+  } catch (e) {
+    if (!mounted) return;
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("AI error: $e")));
   }
-  void aiInfo() {
-    showDialog(context: context, builder: (_) => AlertDialog(title: Row(children: [const Icon(Icons.smart_toy, color: Colors.pink), const SizedBox(width: 8), Text("AI Cash Round Info - Group ${widget.groupId}")]), content: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("🤖 Hello! I am Mama Teachers AI.", style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 10),
-      Text("Cash Round ${widget.groupId}:"), Text("• Contribution: ${fmt(cashGroups[widget.groupId]!.contribution)} UGX"), Text("• Cycle: ${cashGroups[widget.groupId]!.cycle} (${roundLabel(widget.groupId)})"),
-      Text("• You are: ${widget.currentUser['fullName']} - ${widget.currentUser['role']}"), Text("• Your Category: ${widget.currentUser['category']}"),
-      const SizedBox(height: 10), const Text("How this cash round works:", style: TextStyle(fontWeight: FontWeight.bold)),
-      Text("1. Every member contributes ${fmt(cashGroups[widget.groupId]!.contribution)} UGX every ${cashGroups[widget.groupId]!.cycle} round."),
-      const Text("2. Ch.person / Secretary / Treasure marks cash paid."), const Text("3. Paid members move from Not Paid to Paid."),
-      const Text("4. One member receives the total cash for that round and is marked RECEIVED."), const Text("5. When the round ends, cash data moves to PAST automatically."),
-      const Text("6. Generate PNG receipts and send to WhatsApp group or member directly."),
-      const SizedBox(height: 10), const Text("Tip: If you are in 2 cash rounds, finish in one, go back to Cash Round List, then enter the other.", style: TextStyle(color: Colors.grey)),
-    ])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))]));
-  }
+}
   @override Widget build(BuildContext context) {
     var cfg = cashGroups[widget.groupId]!;
     return Scaffold(appBar: AppBar(backgroundColor: cfg.color, foregroundColor: Colors.white, title: Text("Group ${widget.groupId} - ${roundLabel(widget.groupId)}"),
