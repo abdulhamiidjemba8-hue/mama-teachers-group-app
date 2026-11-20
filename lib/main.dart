@@ -457,7 +457,8 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     var dir = await getTemporaryDirectory();
     var f = File("${dir.path}/receipt_${DateTime.now().millisecondsSinceEpoch}.png");
     await f.writeAsBytes(img);
-    await Share.shareXFiles([XFile(f.path)], text: "Mama Teachers Group Receipt - $type for $name - $amt UGX");
+        await Share.shareXFiles([XFile(f.path)], text: "Mama Teachers Group Receipt - $type for $name - $amt UGX");
+  }  // <-- ADD THIS ONE LINE - closes receipt()
   Future<void> aiInfo() async {
   String gid = widget.groupId;
   String r = currentRoundId(gid);
