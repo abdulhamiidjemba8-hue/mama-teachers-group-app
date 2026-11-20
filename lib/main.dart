@@ -552,6 +552,18 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     ]);
   }
   Widget buildSettings() {
+  // STEP 4B: Only executive of THIS group can see Settings
+  if (!isExec) {
+    return Center(child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Text(
+        "🔒 Only Ch.person, Secretary or Treasure of Group ${widget.groupId} can open Settings.\n\nYou are: ${widget.currentUser['role']}",
+        textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.grey),
+      ),
+    ));
+  }
+  TextEditingController amtC = TextEditingController(text: cashGroups[widget.groupId]!.contribution.toString());
+  // ... keep the rest of your buildSettings code as it is ...
     TextEditingController amtC = TextEditingController(text: cashGroups[widget.groupId]!.contribution.toString());
     String cycle = cashGroups[widget.groupId]!.cycle;
     Color picked = cashGroups[widget.groupId]!.color;
