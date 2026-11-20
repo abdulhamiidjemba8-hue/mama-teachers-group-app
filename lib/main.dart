@@ -644,6 +644,7 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
         ]);
       },
     ),
+    IconButton(icon: const Icon(Icons.share), onPressed: exportGroupPDF),
     IconButton(icon: const Text("💿", style: TextStyle(fontSize: 22)), onPressed: () => showAd(context)),
   ],
         bottom: TabBar(controller: tab, isScrollable: true, indicatorColor: Colors.white, labelColor: Colors.white, unselectedLabelColor: Colors.white70, tabs: const [Tab(text: "All Members"), Tab(text: "Pay Please"), Tab(text: "Paid ✅"), Tab(text: "Not Paid ❌"), Tab(text: "Received"), Tab(text: "Past"), Tab(text: "Chat"), Tab(text: "Settings"), Tab(text: "Secretary 📝")])),
