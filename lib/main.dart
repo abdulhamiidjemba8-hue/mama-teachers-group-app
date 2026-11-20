@@ -153,8 +153,13 @@ class _Login extends State<Login> {
       await prefs.setString('saved_name', nameC.text.trim());
       await prefs.setString('saved_phone', phoneC.text.trim()); // STEP 1: Save phone too
 
-      var db = FirebaseFirestore.instance;
-      Map<String, dynamic> data = {'fullName': nameC.text.trim(), 'phone': phoneC.text.trim(), 'category': cat, 'role': role, 'updatedAt': FieldValue.serverTimestamp()};
+            var db = FirebaseFirestore.instance;
+      // STEP 7: Get this phone's push token
+      String fcmToken = '';
+      try {
+        fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
+      } catch (_) {}
+      Map<String, dynamic> data = {'fullName': nameC.text.trim(), 'phone': phoneC.text.trim(), 'category': cat, 'role': role, 'fcmToken': fcmToken, 'updatedAt': FieldValue.serverTimestamp()};
       String docId = 'local';
 
       try {
