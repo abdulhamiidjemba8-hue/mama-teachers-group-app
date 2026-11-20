@@ -89,11 +89,13 @@ class _Splash extends State<Splash> {
       }
     } catch (_) {}
 
-    // Firestore - with timeout, if it fails go to Login, don't stay white
+        // Firestore - with timeout, if it fails go to Login, don't stay white
     try {
+      String savedPhone = prefs.getString('saved_phone') ?? '';
       var q = await FirebaseFirestore.instance
           .collection('members')
           .where('fullName', isEqualTo: saved)
+          .where('phone', isEqualTo: savedPhone)
           .limit(1)
           .get()
           .timeout(const Duration(seconds: 8));
