@@ -343,7 +343,7 @@ class _Dashboard extends State<Dashboard> with SingleTickerProviderStateMixin {
   late TabController tab; final shot = ScreenshotController();
   @override void initState() {
   super.initState();
-  tab = TabController(length: 9, vsync: this);
+  tab = TabController(length: 10, vsync: this);
   _load();
   // STEP 5: When user opens Chat tab (index 6), mark all as read
   tab.addListener(() {
