@@ -584,7 +584,36 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
         setState(() { cashGroups[widget.groupId]!.contribution = amt; cashGroups[widget.groupId]!.cycle = cycle; cashGroups[widget.groupId]!.color = picked; });
         if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cash round settings saved for Group ${widget.groupId}")));
       }, child: const Text("SAVE CASH ROUND SETTINGS", style: TextStyle(color: Colors.white)))),
-      const SizedBox(height: 15), Text("Current: ${fmt(cashGroups[widget.groupId]!.contribution)} UGX - $cycle - Round: ${roundLabel(widget.groupId)}", style: const TextStyle(color: Colors.grey)),
+      const SizedBox(height: 15), Text("Current: ${fmt(cashGroups[widget.groupId]!.contribution)} UGX - $cycle - Round: ${roundLabel(widget.groupId)}", style: const TextStyle(color: Colors.grey)),      const SizedBox(height: 25),
+      const Divider(),
+      Text("Members in Group ${widget.groupId} - Executive can remove", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
+      const SizedBox(height: 10),
+      StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('members').snapshots(),
+        builder: (c, snap) {
+          if (!snap.hasData) return const SizedBox();
+          var list = snap.data!.docs.where((d) => inGroup(d.data() as Map<String, dynamic>, widget.groupId)).toList();
+          return Column(children: list.map((d) {
+            var m = d.data() as Map<String, dynamic>;
+            return Card(child: ListTile(
+              title: Text(m['fullName'] ?? ''),
+              subtitle: Text("${m['role']} • ${m['phone']}"),
+              trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async {
+                bool ok = await showDialog(context: context, builder: (_) => AlertDialog(
+                  title: Text("Remove ${m['fullName']} from Group ${widget.groupId}?"),
+                  content: const Text("This deletes them from the App. Only executive can do this."),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("DELETE", style: TextStyle(color: Colors.red))),
+                  ],
+                )) ?? false;
+                if (!ok) return;
+                await FirebaseFirestore.instance.collection('members').doc(d.id).delete();
+              }),
+            ));
+          }).toList());
+        },
+      ),
     ])));
   }
 }
