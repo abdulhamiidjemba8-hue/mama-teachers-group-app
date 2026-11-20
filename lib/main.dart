@@ -324,6 +324,72 @@ class _Dashboard extends State<Dashboard> with SingleTickerProviderStateMixin {
     if (c.contains("&") && c.contains(gid)) return true;
     return false;
   }
+  Future<void> addPartialPayment(String mid, String name, int amount) async {
+  String r = currentRoundId(widget.groupId);
+  var ref = FirebaseFirestore.instance.collection('partial_payments').doc("${widget.groupId}_${r}_$mid");
+  var doc = await ref.get();
+  int soFar = ((doc.data()?['paidSoFar'] ?? 0) as int) + amount;
+  await ref.set({
+    'groupId': widget.groupId, 'roundId': r, 'memberId': mid, 'memberName': name,
+    'paidSoFar': soFar, 'target': cashGroups[widget.groupId]!.contribution,
+    'lastPaidBy': widget.currentUser['fullName'], 'updatedAt': FieldValue.serverTimestamp(),
+  });
+}
+
+Widget buildSecretary(List<QueryDocumentSnapshot> members) {
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance.collection('partial_payments')
+      .where('groupId', isEqualTo: widget.groupId)
+      .where('roundId', isEqualTo: currentRoundId(widget.groupId)).snapshots(),
+    builder: (ctx, snap) {
+      Map<String, int> paidMap = {};
+      if (snap.hasData) {
+        for (var d in snap.data!.docs) {
+          var p = d.data() as Map<String, dynamic>;
+          paidMap[p['memberId']] = p['paidSoFar'] ?? 0;
+        }
+      }
+      int target = cashGroups[widget.groupId]!.contribution;
+      return ListView(children: [
+        Padding(padding: const EdgeInsets.all(12), child: Text("Secretary - Tap name to record cash paid. Target: ${fmt(target)} UGX - ${roundLabel(widget.groupId)}", style: const TextStyle(fontWeight: FontWeight.bold))),
+        ...members.map((d) {
+          var m = d.data() as Map<String, dynamic>;
+          int soFar = paidMap[d.id] ?? 0;
+          bool complete = soFar >= target;
+          return Card(color: complete ? Colors.green[50] : Colors.white, child: ListTile(
+            title: Text(m['fullName'] ?? ''),
+            subtitle: Text("Paid: ${fmt(soFar)} / ${fmt(target)} UGX ${complete ? '✅ COMPLETE - Can now mark PAID' : '• Remaining: ${fmt(target - soFar)}'}"),
+            trailing: ElevatedButton(
+              onPressed: () {
+                TextEditingController amtC = TextEditingController();
+                showDialog(context: context, builder: (_) => AlertDialog(
+                  title: Text("Record cash for ${m['fullName']}"),
+                  content: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text("Already paid: ${fmt(soFar)} / ${fmt(target)}"),
+                    const SizedBox(height: 10),
+                    TextField(controller: amtC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Amount paid now (UGX)", border: OutlineInputBorder())),
+                  ]),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+                    ElevatedButton(onPressed: () async {
+                      int amt = int.tryParse(amtC.text) ?? 0;
+                      if (amt <= 0) return;
+                      Navigator.pop(context);
+                      await addPartialPayment(d.id, m['fullName'], amt);
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Recorded ${fmt(amt)} for ${m['fullName']} - Total now ${fmt(soFar + amt)}")));
+                    }, child: const Text("SAVE")),
+                  ],
+                ));
+              },
+              child: Text(complete ? "ADD MORE" : "RECORD"),
+            ),
+          ));
+        }),
+      ]);
+    },
+  );
+}
   Future<void> markPaid(String mid, String name) async {
     if (!isExec) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Only Ch.person, Secretary or Treasure can mark cash paid"))); return; }
     String r = currentRoundId(widget.groupId);
