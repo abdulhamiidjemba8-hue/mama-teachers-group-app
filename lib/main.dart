@@ -573,6 +573,50 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("AI error: $e")));
   }
 }
+    Future<void> exportGroupPDF() async {
+    String gid = widget.groupId;
+    String r = currentRoundId(gid);
+    int target = cashGroups[gid]!.contribution;
+
+    // Get live data
+    var membersSnap = await FirebaseFirestore.instance.collection('members').get();
+    var allInGroup = membersSnap.docs.where((d) => inGroup(d.data() as Map<String, dynamic>, gid)).toList();
+    var paidSnap = await FirebaseFirestore.instance.collection('cash_payments').where('groupId', isEqualTo: gid).where('roundId', isEqualTo: r).get();
+    Set<String> paidIds = paidSnap.docs.map((d) => (d.data() as Map<String, dynamic>)['memberId'] as String).toSet();
+    var recSnap = await FirebaseFirestore.instance.collection('cash_received').where('groupId', isEqualTo: gid).where('roundId', isEqualTo: r).get();
+    String receiver = recSnap.docs.isEmpty ? "No one yet" : (recSnap.docs.first.data() as Map<String, dynamic>)['memberName'] ?? "Unknown";
+
+    var w = Material(child: Container(color: Colors.white, padding: const EdgeInsets.all(20), width: 380, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [Image.asset('assets/logo.png', width: 50, height: 50, errorBuilder: (_, __, ___) => const Icon(Icons.groups, size: 40, color: Colors.pink)), const SizedBox(width: 10), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("MAMA TEACHERS GROUP", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), Text("Group $gid Report - ${roundLabel(gid)}", style: const TextStyle(color: Colors.grey))])]),
+      const Divider(),
+      Text("Contribution: ${fmt(target)} UGX - ${cashGroups[gid]!.cycle}", style: const TextStyle(fontWeight: FontWeight.bold)),
+      Text("Total Members: ${allInGroup.length}"),
+      Text("Paid: ${paidIds.length} / ${allInGroup.length}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+      Text("Not Paid: ${allInGroup.length - paidIds.length}", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+      Text("Total Collected: ${fmt(paidIds.length * target)} UGX"),
+      Text("Receiver: $receiver"),
+      const SizedBox(height: 12),
+      const Text("PAID MEMBERS:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+      ...allInGroup.where((d) => paidIds.contains(d.id)).map((d) => Text("✅ ${(d.data() as Map<String, dynamic>)['fullName']} - ${fmt(target)} UGX")),
+      const SizedBox(height: 8),
+      const Text("NOT PAID MEMBERS:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+      ...allInGroup.where((d) => !paidIds.contains(d.id)).map((d) => Text("❌ ${(d.data() as Map<String, dynamic>)['fullName']} - ${m(d)}")),
+      const SizedBox(height: 12),
+      const Text("Mama Teachers Group - Cash Round", style: TextStyle(color: Colors.grey, fontSize: 12)),
+      const Text("Ihsaanu Tech - 0709157254", style: TextStyle(color: Colors.grey, fontSize: 11)),
+    ])));
+
+    var img = await shot.captureFromWidget(w);
+    var dir = await getTemporaryDirectory();
+    var f = File("${dir.path}/Group_${gid}_Report_${DateTime.now().millisecondsSinceEpoch}.png");
+    await f.writeAsBytes(img);
+    await Share.shareXFiles([XFile(f.path)], text: "Mama Teachers Group $gid Report - ${roundLabel(gid)}");
+  }
+
+  String m(QueryDocumentSnapshot d) {
+    var data = d.data() as Map<String, dynamic>;
+    return data['phone'] ?? '';
+  }
   @override Widget build(BuildContext context) {
     var cfg = cashGroups[widget.groupId]!;
     return Scaffold(appBar: AppBar(backgroundColor: cfg.color, foregroundColor: Colors.white, title: Text("Group ${widget.groupId} - ${roundLabel(widget.groupId)}"),
