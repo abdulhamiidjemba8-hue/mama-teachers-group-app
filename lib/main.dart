@@ -658,7 +658,7 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
         ListTile(leading: const Icon(Icons.history), title: const Text("Past Rounds"), onTap: () { Navigator.pop(context); tab.animateTo(5); }),
         ListTile(leading: const Icon(Icons.chat), title: const Text("Chat"), onTap: () { Navigator.pop(context); tab.animateTo(6); }),
         ListTile(leading: const Icon(Icons.settings), title: const Text("Settings"), onTap: () { Navigator.pop(context); tab.animateTo(7); }),
-        ListTile(leading: const Icon(Icons.edit_note, color: Colors.blue), title: const Text("Secretary - Record Cash"), onTap: () { Navigator.pop(context); tab.animateTo(8); }),
+        ListTile(leading: const Icon(Icons.edit_note, color: Colors.blue), title: const Text("Secretary - Record Cash"), onTap: () { Navigator.pop(context); tab.animateTo(8); }),        ListTile(leading: const Icon(Icons.live_tv, color: Colors.red), title: const Text("Live Data - This Group"), onTap: () { Navigator.pop(context); tab.animateTo(9); }),
         ListTile(leading: const Icon(Icons.smart_toy), title: const Text("AI Cash Round Info"), onTap: () { Navigator.pop(context); aiInfo(); }),
         ListTile(leading: const Icon(Icons.arrow_back), title: const Text("Back to Cash Round List"), onTap: () => Navigator.popUntil(context, (r) => r.isFirst)),
       ])),
