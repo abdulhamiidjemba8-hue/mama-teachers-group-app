@@ -351,6 +351,19 @@ class _Dashboard extends State<Dashboard> with SingleTickerProviderStateMixin {
   tab.addListener(() {
     if (tab.index == 6) markChatAsRead();
   });
+      // PLAN B listener
+  FirebaseFirestore.instance.collection('notifications')
+    .where('groupId', isEqualTo: widget.groupId)
+    .orderBy('createdAt', descending: true).limit(1).snapshots().listen((snap) {
+      if (snap.docs.isEmpty) return;
+      var n = snap.docs.first.data() as Map<String, dynamic>;
+      String sender = n['sender'] ?? '';
+      if (sender == widget.currentUser['fullName']) return;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("${n['title']} - ${n['body']}"), duration: const Duration(seconds: 5), backgroundColor: Colors.green),
+      );
+    });
 }
   Future<void> _load() async {
     var doc = await FirebaseFirestore.instance.collection('cash_round_settings').doc(widget.groupId).get();
