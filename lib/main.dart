@@ -62,7 +62,25 @@ String roundLabel(String gid) {
 
 bool isDev(String name) => name.trim().toLowerCase() == devName.toLowerCase();
 String fmt(int v) => NumberFormat('#,###').format(v);
+String fmt(int v) => NumberFormat('#,###').format(v);
 
+// STEP 8 - PLAN B: No Server Key needed
+Future<void> sendPushToGroup(String gid, String title, String body, String senderName) async {
+  try {
+    await FirebaseFirestore.instance.collection('notifications').add({
+      'groupId': gid,
+      'title': title,
+      'body': body,
+      'sender': senderName,
+      'createdAt': FieldValue.serverTimestamp(),
+      'readBy': [senderName],
+    });
+  } catch (e) {
+    print("Notify error: $e");
+  }
+}
+
+class MamaApp extends StatelessWidget {
 class MamaApp extends StatelessWidget {
   const MamaApp({super.key});
   @override
