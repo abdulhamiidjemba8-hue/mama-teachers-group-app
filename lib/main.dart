@@ -410,10 +410,28 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     await FirebaseFirestore.instance.collection('cash_payments').doc("${widget.groupId}_${currentRoundId(widget.groupId)}_$mid").delete();
   }
   Future<void> markReceived(String mid, String name, int amt) async {
-    if (!isExec) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Only executives can mark received"))); return; }
-    String r = currentRoundId(widget.groupId);
-    await FirebaseFirestore.instance.collection('cash_received').doc("${widget.groupId}_${r}_$mid").set({'groupId': widget.groupId, 'roundId': r, 'memberId': mid, 'memberName': name, 'amount': amt, 'receivedAt': FieldValue.serverTimestamp()});
+  if (!isExec) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Only executives can mark received"))); return; }
+  String r = currentRoundId(widget.groupId);
+  // CHECK 1: Must be PAID first
+  var paidDoc = await FirebaseFirestore.instance.collection('cash_payments').doc("${widget.groupId}_${r}_$mid").get();
+  if (!paidDoc.exists) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name cannot RECEIVE - not yet marked PAID. Secretary must record full payment first.")));
+    return;
   }
+  // CHECK 2: Already received this round?
+  var recDoc = await FirebaseFirestore.instance.collection('cash_received').doc("${widget.groupId}_${r}_$mid").get();
+  if (recDoc.exists) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name already received this round.")));
+    return;
+  }
+  await FirebaseFirestore.instance.collection('cash_received').doc("${widget.groupId}_${r}_$mid").set({
+    'groupId': widget.groupId, 'roundId': r, 'memberId': mid, 'memberName': name,
+    'amount': amt, 'receivedAt': FieldValue.serverTimestamp(),
+    'markedBy': widget.currentUser['fullName'],
+  });
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name marked RECEIVED - ${fmt(amt)} UGX")));
+}
   Future<void> receipt(String type, String name, int amt) async {
     var w = Material(child: Container(color: Colors.white, padding: const EdgeInsets.all(20), width: 350, child: Column(children: [
       Image.asset('assets/logo.png', width: 80, height: 80, errorBuilder: (_, __, ___) => const Icon(Icons.groups, size: 60, color: Colors.pink)),
