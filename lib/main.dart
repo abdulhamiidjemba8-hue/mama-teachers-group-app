@@ -148,7 +148,10 @@ class _Login extends State<Login> {
       String docId = 'local';
 
       try {
-        var q = await db.collection('members').where('fullName', isEqualTo: nameC.text.trim()).limit(1).get().timeout(const Duration(seconds: 5));
+        var q = await db.collection('members')
+  .where('fullName', isEqualTo: nameC.text.trim())
+  .where('phone', isEqualTo: phoneC.text.trim())
+  .limit(1).get().timeout(const Duration(seconds: 5));
         if (q.docs.isEmpty) {
           data['createdAt'] = FieldValue.serverTimestamp();
           var d = await db.collection('members').add(data).timeout(const Duration(seconds: 5));
