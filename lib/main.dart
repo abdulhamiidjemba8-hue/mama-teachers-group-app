@@ -800,17 +800,22 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
         if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         return ListView.builder(reverse: true, itemCount: snap.data!.docs.length, itemBuilder: (_, i) { var m = snap.data!.docs[i].data() as Map<String, dynamic>; bool mine = m['sender'] == widget.currentUser['fullName']; return Align(alignment: mine ? Alignment.centerRight : Alignment.centerLeft, child: Container(margin: const EdgeInsets.all(6), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: mine ? cashGroups[widget.groupId]!.color : Colors.grey[200], borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(m['sender'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, color: mine ? Colors.white : Colors.black, fontSize: 11)), Text(m['text'] ?? '', style: TextStyle(color: mine ? Colors.white : Colors.black))]))); });
       })),
-      Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: TextField(controller: msgC, decoration: InputDecoration(hintText: "Type cash message for Group ${widget.groupId}...", border: OutlineInputBorder(borderRadius: BorderRadius.circular(20))))), IconButton(icon: Icon(Icons.send, color: cashGroups[widget.groupId]!.color), onPressed: () { if (msgC.text.trim().isEmpty) return; FirebaseFirestore.instance.collection('cash_chats').add({
-  'groupId': widget.groupId,
-  'sender': widget.currentUser['fullName'],
-  'text': msgC.text.trim(),
-  'createdAt': FieldValue.serverTimestamp(),
-  'readBy': [widget.currentUser['fullName']], // STEP 5: Sender already read it
-});     }); sendPushToGroup(widget.groupId, "💬 New Message - Group ${widget.groupId}", "${widget.currentUser['fullName']}: ${msgC.text.trim()}", widget.currentUser['fullName']); msgC.clear(); })])),
+      Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: TextField(controller: msgC, decoration: InputDecoration(hintText: "Type cash message for Group ${widget.groupId}...", border: OutlineInputBorder(borderRadius: BorderRadius.circular(20))))), IconButton(icon: Icon(Icons.send, color: cashGroups[widget.groupId]!.color), onPressed: () { 
+  if (msgC.text.trim().isEmpty) return; 
+  String txt = msgC.text.trim();
+  FirebaseFirestore.instance.collection('cash_chats').add({
+    'groupId': widget.groupId,
+    'sender': widget.currentUser['fullName'],
+    'text': txt,
+    'createdAt': FieldValue.serverTimestamp(),
+    'readBy': [widget.currentUser['fullName']],
+  });
+  sendPushToGroup(widget.groupId, "💬 New Message - Group ${widget.groupId}", "${widget.currentUser['fullName']}: $txt", widget.currentUser['fullName']); 
+  msgC.clear(); 
+})])),
     ]);
   }
-  Widget buildSettings() {
-  // STEP 4B: Only executive of THIS group can see Settings
+    Widget buildSettings() {
   if (!isExec) {
     return Center(child: Padding(
       padding: const EdgeInsets.all(20),
@@ -820,7 +825,6 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
       ),
     ));
   }
-    }
   TextEditingController amtC = TextEditingController(text: cashGroups[widget.groupId]!.contribution.toString());
   String cycle = cashGroups[widget.groupId]!.cycle;
   Color picked = cashGroups[widget.groupId]!.color;
