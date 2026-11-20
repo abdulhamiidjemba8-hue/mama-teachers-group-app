@@ -310,7 +310,15 @@ class Dashboard extends StatefulWidget {
 }
 class _Dashboard extends State<Dashboard> with SingleTickerProviderStateMixin {
   late TabController tab; final shot = ScreenshotController();
-  @override void initState() { super.initState(); tab = TabController(length: 9, vsync: this); _load(); }
+  @override void initState() {
+  super.initState();
+  tab = TabController(length: 9, vsync: this);
+  _load();
+  // STEP 5: When user opens Chat tab (index 6), mark all as read
+  tab.addListener(() {
+    if (tab.index == 6) markChatAsRead();
+  });
+}
   Future<void> _load() async {
     var doc = await FirebaseFirestore.instance.collection('cash_round_settings').doc(widget.groupId).get();
     if (doc.exists) { var d = doc.data()!; setState(() { cashGroups[widget.groupId]!.contribution = d['contribution'] ?? cashGroups[widget.groupId]!.contribution; cashGroups[widget.groupId]!.cycle = d['cycle'] ?? cashGroups[widget.groupId]!.cycle; if (d['color'] != null) cashGroups[widget.groupId]!.color = Color(d['color']); }); }
