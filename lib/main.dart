@@ -541,6 +541,20 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
       return ListView(children: by.entries.map((e) => ExpansionTile(title: Text("Cash Round: ${e.key} - ${e.value.length} paid"), children: e.value.map((d) { var m = d.data() as Map<String, dynamic>; return ListTile(title: Text(m['memberName'] ?? ''), subtitle: Text("${fmt(m['amount'])} UGX")); }).toList())).toList());
     });
   }
+  Future<void> markChatAsRead() async {
+  try {
+    var q = await FirebaseFirestore.instance.collection('cash_chats')
+        .where('groupId', isEqualTo: widget.groupId).get();
+    String myName = widget.currentUser['fullName'] ?? '';
+    for (var d in q.docs) {
+      var data = d.data() as Map<String, dynamic>;
+      List readBy = data['readBy'] ?? [];
+      if (!readBy.contains(myName)) {
+        await d.reference.update({'readBy': FieldValue.arrayUnion([myName])});
+      }
+    }
+  } catch (_) {}
+}
   Widget buildChat() {
     TextEditingController msgC = TextEditingController();
     return Column(children: [
