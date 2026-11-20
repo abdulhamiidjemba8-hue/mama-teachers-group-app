@@ -229,17 +229,78 @@ class GroupList extends StatelessWidget {
   }
 }
 
-class GeneralSettings extends StatelessWidget {
+class GeneralSettings extends StatefulWidget {
   final Map<String, dynamic> currentUser;
   const GeneralSettings({super.key, required this.currentUser});
-  @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text("General Settings - Executives"), backgroundColor: Colors.orange),
-    body: StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('members').snapshots(), builder: (ctx, snap) {
-      if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-      return ListView(children: [const Padding(padding: EdgeInsets.all(12), child: Text("Set who is executive and in which cash round. Only Ch.person, Secretary, Treasure can mark cash paid.", style: TextStyle(fontWeight: FontWeight.bold))),
-        ...snap.data!.docs.map((d) { var m = d.data() as Map<String, dynamic>;
-          return Card(child: ListTile(title: Text(m['fullName'] ?? ''), subtitle: Text("Cash Round: ${m['category']} | Position: ${m['role']} | ${m['phone']}"),
-            trailing: DropdownButton<String>(value: m['role'], items: ["Ch.person", "Secretary", "Treasure", "Member"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => FirebaseFirestore.instance.collection('members').doc(d.id).update({'role': v})))); })]);
-    }));
+  @override State<GeneralSettings> createState() => _GeneralSettings();
+}
+
+class _GeneralSettings extends State<GeneralSettings> {
+  String selectedGroup = 'A';
+  final groups = ["A", "B", "C", "A & B", "A & C", "B & C", "All"];
+
+  bool inSelectedGroup(Map<String, dynamic> m) {
+    String c = m['category'] ?? '';
+    if (selectedGroup == "All") return true;
+    if (selectedGroup.contains("&")) {
+      var parts = selectedGroup.split("&").map((e) => e.trim()).toList();
+      if (c == "All") return true;
+      for (var p in parts) { if (c.contains(p)) return true; }
+      return false;
+    }
+    if (c == "All") return true;
+    if (c == selectedGroup) return true;
+    if (c.contains("&") && c.contains(selectedGroup)) return true;
+    return false;
+  }
+
+  Future<void> deleteMember(String docId, String name) async {
+    bool ok = await showDialog(context: context, builder: (_) => AlertDialog(
+      title: Text("Delete $name?"),
+      content: Text("This will remove $name from the App. Only executive can do this."),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("DELETE", style: TextStyle(color: Colors.red))),
+      ],
+    )) ?? false;
+    if (!ok) return;
+    await FirebaseFirestore.instance.collection('members').doc(docId).delete();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name deleted")));
+  }
+
+  @override Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text("General Settings - Executives"), backgroundColor: Colors.orange),
+    body: Column(children: [
+      Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text("1. Choose group to manage:", style: TextStyle(fontWeight: FontWeight.bold)),
+        DropdownButton<String>(value: selectedGroup, isExpanded: true, items: groups.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => selectedGroup = v!)),
+        const SizedBox(height: 8),
+        const Text("2. Set who is Ch.person / Secretary / Treasure in THIS group. Tap trash to delete member.", style: TextStyle(color: Colors.grey)),
+      ])),
+      Expanded(child: StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('members').snapshots(), builder: (ctx, snap) {
+        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        var list = snap.data!.docs.where((d) => inSelectedGroup(d.data() as Map<String, dynamic>)).toList();
+        return ListView(children: list.map((d) {
+          var m = d.data() as Map<String, dynamic>;
+          return Card(child: ListTile(
+            title: Text(m['fullName'] ?? ''),
+            subtitle: Text("Cash Round: ${m['category']} | Position: ${m['role']} | ${m['phone']}"),
+            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+              DropdownButton<String>(value: m['role'], items: ["Ch.person", "Secretary", "Treasure", "Member"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                onChanged: (v) async {
+                  await FirebaseFirestore.instance.collection('members').doc(d.id).update({'role': v});
+                  await FirebaseFirestore.instance.collection('exec_roles').doc("${d.id}_$selectedGroup").set({
+                    'memberId': d.id, 'memberName': m['fullName'], 'groupId': selectedGroup, 'role': v, 'updatedBy': widget.currentUser['fullName'],
+                  });
+                }),
+              IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => deleteMember(d.id, m['fullName'] ?? '')),
+            ]),
+          ));
+        }).toList());
+      })),
+    ]),
+  );
 }
 
 class Dashboard extends StatefulWidget {
