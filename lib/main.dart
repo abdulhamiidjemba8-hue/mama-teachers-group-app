@@ -141,6 +141,7 @@ class _Login extends State<Login> {
       var prefs = await SharedPreferences.getInstance();
       await prefs.setBool('first_open', false);
       await prefs.setString('saved_name', nameC.text.trim());
+      await prefs.setString('saved_phone', phoneC.text.trim()); // STEP 1: Save phone too
 
       var db = FirebaseFirestore.instance;
       Map<String, dynamic> data = {'fullName': nameC.text.trim(), 'phone': phoneC.text.trim(), 'category': cat, 'role': role, 'updatedAt': FieldValue.serverTimestamp()};
