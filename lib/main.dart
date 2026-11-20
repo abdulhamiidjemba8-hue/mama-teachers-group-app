@@ -673,11 +673,10 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
       ),
     ));
   }
+    }
   TextEditingController amtC = TextEditingController(text: cashGroups[widget.groupId]!.contribution.toString());
-  // ... keep the rest of your buildSettings code as it is ...
-    TextEditingController amtC = TextEditingController(text: cashGroups[widget.groupId]!.contribution.toString());
-    String cycle = cashGroups[widget.groupId]!.cycle;
-    Color picked = cashGroups[widget.groupId]!.color;
+  String cycle = cashGroups[widget.groupId]!.cycle;
+  Color picked = cashGroups[widget.groupId]!.color;
     List<Color> colors = [Colors.pink, Colors.purple, Colors.cyan, Colors.green, Colors.orange, Colors.blue, Colors.red, Colors.teal];
     return StatefulBuilder(builder: (ctx, setSt) => SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text("Settings for Cash Round ${widget.groupId}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
