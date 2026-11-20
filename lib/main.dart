@@ -568,7 +568,11 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
         ListTile(leading: const Icon(Icons.smart_toy), title: const Text("AI Cash Round Info"), onTap: () { Navigator.pop(context); aiInfo(); }),
         ListTile(leading: const Icon(Icons.arrow_back), title: const Text("Back to Cash Round List"), onTap: () => Navigator.popUntil(context, (r) => r.isFirst)),
       ])),
-      floatingActionButton: FloatingActionButton(backgroundColor: cfg.color, onPressed: aiInfo, child: const Icon(Icons.smart_toy, color: Colors.white)),
+      floatingActionButton: FloatingActionButton(
+  backgroundColor: cfg.color,
+  onPressed: aiInfo,
+  child: const Text("?", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+),
       body: StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('members').snapshots(), builder: (ctx, memSnap) {
         if (!memSnap.hasData) return const Center(child: CircularProgressIndicator());
         var all = memSnap.data!.docs.where((d) => inGroup(d.data() as Map<String, dynamic>, widget.groupId)).toList();
