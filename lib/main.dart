@@ -474,7 +474,33 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
   }
   @override Widget build(BuildContext context) {
     var cfg = cashGroups[widget.groupId]!;
-    return Scaffold(appBar: AppBar(backgroundColor: cfg.color, foregroundColor: Colors.white, title: Text("Group ${widget.groupId} - ${roundLabel(widget.groupId)}"), actions: [IconButton(icon: const Text("💿", style: TextStyle(fontSize: 22)), onPressed: () => showAd(context))],
+    return Scaffold(appBar: AppBar(backgroundColor: cfg.color, foregroundColor: Colors.white, title: Text("Group ${widget.groupId} - ${roundLabel(widget.groupId)}"),
+  actions: [
+    // STEP 5: Unread chat badge
+    StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('cash_chats').where('groupId', isEqualTo: widget.groupId).snapshots(),
+      builder: (c, snap) {
+        int unread = 0;
+        if (snap.hasData) {
+          String myName = widget.currentUser['fullName'] ?? '';
+          unread = snap.data!.docs.where((d) {
+            var m = d.data() as Map<String, dynamic>;
+            List readBy = m['readBy'] ?? [];
+            return !readBy.contains(myName) && m['sender'] != myName;
+          }).length;
+        }
+        return Stack(children: [
+          IconButton(icon: const Icon(Icons.chat), onPressed: () { tab.animateTo(6); markChatAsRead(); }),
+          if (unread > 0) Positioned(top: 4, right: 6, child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+            child: Text("$unread", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+          )),
+        ]);
+      },
+    ),
+    IconButton(icon: const Text("💿", style: TextStyle(fontSize: 22)), onPressed: () => showAd(context)),
+  ],
         bottom: TabBar(controller: tab, isScrollable: true, indicatorColor: Colors.white, labelColor: Colors.white, unselectedLabelColor: Colors.white70, tabs: const [Tab(text: "All Members"), Tab(text: "Pay Please"), Tab(text: "Paid ✅"), Tab(text: "Not Paid ❌"), Tab(text: "Received"), Tab(text: "Past"), Tab(text: "Chat"), Tab(text: "Settings"), Tab(text: "Secretary 📝")])),
       drawer: Drawer(child: ListView(children: [
         DrawerHeader(decoration: BoxDecoration(color: cfg.color), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [CircleAvatar(backgroundColor: Colors.white, child: Text(widget.groupId, style: TextStyle(color: cfg.color, fontWeight: FontWeight.bold))), const SizedBox(height: 8), Text("Cash Round ${widget.groupId}", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), Text(widget.currentUser['fullName'] ?? '', style: const TextStyle(color: Colors.white70)), Text("Position: ${widget.currentUser['role']}", style: const TextStyle(color: Colors.white70))])),
