@@ -62,7 +62,6 @@ String roundLabel(String gid) {
 
 bool isDev(String name) => name.trim().toLowerCase() == devName.toLowerCase();
 String fmt(int v) => NumberFormat('#,###').format(v);
-String fmt(int v) => NumberFormat('#,###').format(v);
 
 // STEP 8 - PLAN B: No Server Key needed
 Future<void> sendPushToGroup(String gid, String title, String body, String senderName) async {
