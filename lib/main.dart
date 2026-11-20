@@ -677,7 +677,7 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
           if (paySnap.hasData) paidIds = paySnap.data!.docs.map((d) => (d.data() as Map<String, dynamic>)['memberId'] as String).toSet();
           var paidM = all.where((d) => paidIds.contains(d.id)).toList();
           var notPaidM = all.where((d) => !paidIds.contains(d.id)).toList();
-          return TabBarView(controller: tab, children: [buildAll(all), buildPay(all, paidIds), buildPaid(paidM), buildNotPaid(notPaidM), buildReceived(all), buildPast(), buildChat(), buildSettings(), buildSecretary(all)]);
+          return TabBarView(controller: tab, children: [buildAll(all), buildPay(all, paidIds), buildPaid(paidM), buildNotPaid(notPaidM), buildReceived(all), buildPast(), buildChat(), buildSettings(), buildSecretary(all), buildLive(all, paidIds)]);
         });
       }));
   }
