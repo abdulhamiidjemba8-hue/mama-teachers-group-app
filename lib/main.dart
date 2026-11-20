@@ -455,6 +455,7 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     return;
   }
     await FirebaseFirestore.instance.collection('cash_payments').doc("${widget.groupId}_${r}_$mid").set({'groupId': widget.groupId, 'roundId': r, 'memberId': mid, 'memberName': name, 'amount': cashGroups[widget.groupId]!.contribution, 'status': 'paid', 'markedBy': widget.currentUser['fullName'], 'markedAt': FieldValue.serverTimestamp()});
+    sendPushToGroup(widget.groupId, "✅ Cash PAID - Group ${widget.groupId}", "$name marked PAID", widget.currentUser['fullName']);
     if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name marked PAID")));
   }
   Future<void> unmarkPaid(String mid) async {
