@@ -477,11 +477,14 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name already received this round.")));
     return;
   }
-  await FirebaseFirestore.instance.collection('cash_received').doc("${widget.groupId}_${r}_$mid").set({
+    await FirebaseFirestore.instance.collection('cash_received').doc("${widget.groupId}_${r}_$mid").set({
     'groupId': widget.groupId, 'roundId': r, 'memberId': mid, 'memberName': name,
     'amount': amt, 'receivedAt': FieldValue.serverTimestamp(),
     'markedBy': widget.currentUser['fullName'],
   });
+  sendPushToGroup(widget.groupId, "🎁 Cash RECEIVED - Group ${widget.groupId}", "$name received ${fmt(amt)} UGX", widget.currentUser['fullName']);
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name marked RECEIVED - ${fmt(amt)} UGX")));
   if (!mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name marked RECEIVED - ${fmt(amt)} UGX")));
 }
