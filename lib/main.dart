@@ -707,7 +707,7 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
   'text': msgC.text.trim(),
   'createdAt': FieldValue.serverTimestamp(),
   'readBy': [widget.currentUser['fullName']], // STEP 5: Sender already read it
-}); msgC.clear(); })])),
+});     }); sendPushToGroup(widget.groupId, "💬 New Message - Group ${widget.groupId}", "${widget.currentUser['fullName']}: ${msgC.text.trim()}", widget.currentUser['fullName']); msgC.clear(); })])),
     ]);
   }
   Widget buildSettings() {
