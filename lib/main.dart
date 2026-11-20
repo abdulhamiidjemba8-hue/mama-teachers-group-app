@@ -81,7 +81,6 @@ Future<void> sendPushToGroup(String gid, String title, String body, String sende
 }
 
 class MamaApp extends StatelessWidget {
-class MamaApp extends StatelessWidget {
   const MamaApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(title: 'Mama Teachers Group', debugShowCheckedModeBanner: false, theme: ThemeData(primarySwatch: Colors.pink, useMaterial3: true), home: const Splash());
