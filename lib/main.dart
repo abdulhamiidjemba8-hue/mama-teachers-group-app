@@ -393,6 +393,15 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
   Future<void> markPaid(String mid, String name) async {
     if (!isExec) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Only Ch.person, Secretary or Treasure can mark cash paid"))); return; }
     String r = currentRoundId(widget.groupId);
+      // STEP 3: Cannot mark PAID until Secretary recorded full amount
+  var pDoc = await FirebaseFirestore.instance.collection('partial_payments').doc("${widget.groupId}_${r}_$mid").get();
+  int soFar = (pDoc.data()?['paidSoFar'] ?? 0) as int;
+  int target = cashGroups[widget.groupId]!.contribution;
+  if (soFar < target) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cannot mark PAID - only ${fmt(soFar)} / ${fmt(target)} recorded by Secretary. Record remaining ${fmt(target - soFar)} first.")));
+    return;
+  }
     await FirebaseFirestore.instance.collection('cash_payments').doc("${widget.groupId}_${r}_$mid").set({'groupId': widget.groupId, 'roundId': r, 'memberId': mid, 'memberName': name, 'amount': cashGroups[widget.groupId]!.contribution, 'status': 'paid', 'markedBy': widget.currentUser['fullName'], 'markedAt': FieldValue.serverTimestamp()});
     if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name marked PAID")));
   }
