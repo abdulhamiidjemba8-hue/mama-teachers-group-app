@@ -9,6 +9,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -16,9 +18,17 @@ void main() async {
   } catch (e) {
     print("Firebase failed, but app will still open: $e");
   }
+
+  // STEP 7: Ask for notification permission
+  try {
+    FirebaseMessaging msg = FirebaseMessaging.instance;
+    await msg.requestPermission(alert: true, badge: true, sound: true);
+    // Show notification even when app is open
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
+  } catch (_) {}
+
   runApp(const MamaApp());
 }
-
 const String devName = "Jemba Abdulhamiid";
 const String adText = "🚀 NEED AN APP FOR YOUR GROUP, BUSINESS OR SCHOOL?\n\nIhsaanu Tech builds simple, beautiful & affordable Apps!\n\n✅ Cash Round / Savings Group Apps\n✅ Business Apps\n✅ School & Shop Apps\n✅ Login, Dashboard, Reports & PDF Sharing\n\nLike the Mama Teachers Group App - we can build one for YOU too!\n\n📞 Call / WhatsApp: 0709157254 / 0785831666\n💻 By Ihsaanu Tech - We Build Your Ideas Into Apps\n\n#IhsaanuTech #AppDeveloper #Uganda";
 
