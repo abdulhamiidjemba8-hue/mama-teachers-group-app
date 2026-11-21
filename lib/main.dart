@@ -781,6 +781,8 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
         Text("💰 Total Collected This Round: ${fmt(totalCollected)} UGX"),
         Text("📝 Secretary Partial Total Recorded: ${fmt(partialTotal)} UGX"),
         Text("🎁 Receiver This Round: $receiver"),
+        if (ghostCount > 0) Text("⚠️ Ghost payment: $ghostCount old payment(s) for deleted member(s) - not counted", style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+        if (paidNames.isNotEmpty) Text("Who PAID: ${paidNames.join(', ')}", style: const TextStyle(color: Colors.green)),
         Text("🎯 Contribution: ${fmt(target)} UGX - ${cashGroups[gid]!.cycle}"),
         const SizedBox(height: 10),
         if (notPaidNames.isNotEmpty) ...[
