@@ -524,6 +524,8 @@ class Dashboard extends StatefulWidget {
 }
 class _Dashboard extends State<Dashboard> with SingleTickerProviderStateMixin {
   late TabController tab; final shot = ScreenshotController();
+  String myRoleInGroup = 'Member'; // real role for THIS group only
+  bool get isChPerson => myRoleInGroup == 'Ch.person' || isDev(widget.currentUser['fullName'] ?? '');
   @override void initState() {
   super.initState();
   tab = TabController(length: 10, vsync: this);
@@ -552,7 +554,7 @@ class _Dashboard extends State<Dashboard> with SingleTickerProviderStateMixin {
     var doc = await FirebaseFirestore.instance.collection('cash_round_settings').doc(widget.groupId).get();
     if (doc.exists) { var d = doc.data()!; setState(() { cashGroups[widget.groupId]!.contribution = d['contribution'] ?? cashGroups[widget.groupId]!.contribution; cashGroups[widget.groupId]!.cycle = d['cycle'] ?? cashGroups[widget.groupId]!.cycle; if (d['color'] != null) cashGroups[widget.groupId]!.color = Color(d['color']); }); }
   }
-  bool get isExec => (widget.currentUser['role'] ?? 'Member') != 'Member' || isDev(widget.currentUser['fullName'] ?? '');
+  bool get isExec => myRoleInGroup != 'Member' || isDev(widget.currentUser['fullName'] ?? '');
   bool inGroup(Map<String, dynamic> m, String gid) {
     if (isDev(m['fullName'] ?? '')) return true;
     String c = m['category'] ?? '';
