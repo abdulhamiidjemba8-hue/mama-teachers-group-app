@@ -175,7 +175,7 @@ class _Login extends State<Login> {
       try {
         fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
       } catch (_) {}
-      Map<String, dynamic> data = {'fullName': nameC.text.trim(), 'phone': phoneC.text.trim(), 'category': cat, 'role': role, 'fcmToken': fcmToken, 'updatedAt': FieldValue.serverTimestamp()};
+     Map<String, dynamic> data = {'fullName': nameC.text.trim(), 'phone': phoneC.text.trim(), 'category': cat, 'role': 'Member', 'fcmToken': fcmToken, 'updatedAt': FieldValue.serverTimestamp()};
       String docId = 'local';
 
       try {
