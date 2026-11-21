@@ -772,10 +772,12 @@ ListTile(
         ],
       ),
     );
-    if (confirm == true) {
-      await FirebaseAuth.instance.signOut();
+        if (confirm == true) {
+      // ✅ YOUR logout - clear saved login
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
       if (!context.mounted) return;
-      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (r) => false);
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const Login()), (r) => false);
     }
   },
 ),
