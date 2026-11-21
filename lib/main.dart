@@ -1127,7 +1127,7 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
     }
   } catch (_) {}
 }
- Widget buildChat() {
+Widget buildChat() {
   TextEditingController chatC = TextEditingController();
   return StatefulBuilder(builder: (ctx, setSt) {
     return Column(children: [
@@ -1158,23 +1158,49 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
               itemCount: docs.length,
               padding: const EdgeInsets.all(12),
               itemBuilder: (context, i) {
-                var m = docs[i].data() as Map<String, dynamic>;
+                var doc = docs[i];
+                var m = doc.data() as Map<String, dynamic>;
                 bool me = isMe(m['senderName'] ?? '');
-                return Align(
-                  alignment: me ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: me ? Colors.pink : Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(m['senderName'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: me ? Colors.white : Colors.black54)),
-                        Text(m['message'] ?? '', style: TextStyle(color: me ? Colors.white : Colors.black)),
-                      ],
+                return GestureDetector(
+                  // LONG-PRESS TO DELETE
+                  onLongPress: () async {
+                    if (!me) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('You can only delete your own message')),
+                      );
+                      return;
+                    }
+                    bool ok = await showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Delete message?'),
+                        content: Text('Delete "${m['message'] ?? ''}" for everyone?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+                        ],
+                      ),
+                    ) ?? false;
+                    if (ok) {
+                      await FirebaseFirestore.instance.collection('group_chats').doc(doc.id).delete();
+                    }
+                  },
+                  child: Align(
+                    alignment: me ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: me ? Colors.pink : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(m['senderName'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: me ? Colors.white : Colors.black54)),
+                          Text(m['message'] ?? '', style: TextStyle(color: me ? Colors.white : Colors.black)),
+                        ],
+                      ),
                     ),
                   ),
                 );
