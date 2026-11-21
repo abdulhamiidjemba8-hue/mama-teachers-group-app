@@ -157,7 +157,7 @@ class _Login extends State<Login> {
   final nameC = TextEditingController(); final phoneC = TextEditingController();
   String? cat; String? role;
   final cats = ["A", "B", "C", "A & B", "A & C", "B & C", "All"];
-  final roles = ["Ch.person", "Secretary", "Treasure", "Member"];
+  final roles = ["Ch.person", "Member"];
      // Helper: Turn "A & B" / "All" into list ["A","B"]
   List<String> groupsFromCat(String c) {
     if (c == "All") return ['A', 'B', 'C'];
@@ -171,8 +171,8 @@ class _Login extends State<Login> {
       return;
     }
 
-    // 1. CHECK - If user picked Ch.person / Secretary / Treasure, is it already taken?
-    if (role != 'Member') {
+    // 1. CHECK - Only Ch.person is checked at login. Secretary/Treasure are set later by Ch.person
+if (role == 'Ch.person') {
       var myGroups = groupsFromCat(cat!);
       for (String g in myGroups) {
         var existing = await FirebaseFirestore.instance
