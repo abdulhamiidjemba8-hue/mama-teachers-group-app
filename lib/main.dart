@@ -522,16 +522,7 @@ class _GeneralSettings extends State<GeneralSettings> {
       ),
     ]),
   );
-}
-              IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => deleteMember(d.id, m['fullName'] ?? '')),
-            ]),
-          ));
-        }).toList());
-      })),
-    ]),
-  );
-}
-
+}             
 class Dashboard extends StatefulWidget {
   final String groupId; final Map<String, dynamic> currentUser;
   const Dashboard({super.key, required this.groupId, required this.currentUser});
