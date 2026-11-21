@@ -241,28 +241,22 @@ if (role == 'Ch.person') {
           data = {...q.docs.first.data(), ...data};
         }
 
-        // 3. SAVE ROLE TO exec_roles - So GeneralSettings + Dashboard see it
-        // Create one exec_roles doc per group user is in
-        if (role != 'Member') {
-          var myGroups = groupsFromCat(cat!);
-          for (String g in myGroups) {
-            await db.collection('exec_roles').doc("${docId}_$g").set({
-              'memberId': docId,
-              'memberName': nameC.text.trim(),
-              'groupId': g,
-              'role': role,
-              'updatedBy': nameC.text.trim(),
-              'updatedAt': FieldValue.serverTimestamp(),
-            });
-          }
-        } else {
-          // If picked Member, make sure no old exec_roles remain for this person
-          // (so they don't stay Ch.person after re-login as Member)
-          var old = await db.collection('exec_roles').where('memberId', isEqualTo: docId).get();
-          for (var d in old.docs) {
-            await d.reference.delete();
-          }
-        }
+       // 3. SAVE ROLE TO exec_roles - ONLY Ch.person at login
+// If Member: DO NOT delete exec_roles! He may be Ch.person in A, Member in B
+if (role == 'Ch.person') {
+  var myGroups = groupsFromCat(cat!);
+  for (String g in myGroups) {
+    await db.collection('exec_roles').doc("${docId}_$g").set({
+      'memberId': docId,
+      'memberName': nameC.text.trim(),
+      'groupId': g,
+      'role': 'Ch.person',
+      'updatedBy': nameC.text.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+}
+// Member login: create nothing. Ch.person will promote him later in General Settings.
       } catch (_) {
         // Firebase failed - still enter with local data
       }
