@@ -274,11 +274,6 @@ class _Login extends State<Login> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-    }
-  }
   @override Widget build(BuildContext context) => Scaffold(backgroundColor: Colors.white, body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(children: [
     const SizedBox(height: 36),
     Image.asset('assets/logo.png', width: 130, height: 130, errorBuilder: (_, __, ___) => const Icon(Icons.groups, size: 100, color: Colors.pink)),
