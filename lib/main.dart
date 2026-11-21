@@ -158,31 +158,79 @@ class _Login extends State<Login> {
   String? cat; String? role;
   final cats = ["A", "B", "C", "A & B", "A & C", "B & C", "All"];
   final roles = ["Ch.person", "Secretary", "Treasure", "Member"];
-   Future<void> login() async {
+     // Helper: Turn "A & B" / "All" into list ["A","B"]
+  List<String> groupsFromCat(String c) {
+    if (c == "All") return ['A', 'B', 'C'];
+    if (c.contains("&")) return c.split("&").map((e) => e.trim()).toList();
+    return [c];
+  }
+
+  Future<void> login() async {
     if (nameC.text.trim().isEmpty || phoneC.text.trim().isEmpty || cat == null || role == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Fill all boxes")));
       return;
     }
+
+    // 1. CHECK - If user picked Ch.person / Secretary / Treasure, is it already taken?
+    if (role != 'Member') {
+      var myGroups = groupsFromCat(cat!);
+      for (String g in myGroups) {
+        var existing = await FirebaseFirestore.instance
+            .collection('exec_roles')
+            .where('groupId', isEqualTo: g)
+            .where('role', isEqualTo: role)
+            .get();
+
+        // If someone else already has it - BLOCK
+        // We don't know our docId yet, so check by name - if holder name != my name, block
+        var others = existing.docs.where((doc) {
+          var e = doc.data() as Map<String, dynamic>;
+          return (e['memberName'] ?? '').toString().trim().toLowerCase() != nameC.text.trim().toLowerCase();
+        }).toList();
+
+        if (others.isNotEmpty) {
+          var holder = others.first.data() as Map<String, dynamic>;
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("❌ ${holder['memberName']} is already $role in Group $g. Pick Member or another group."),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          return; // STOP - Don't login as executive
+        }
+      }
+    }
+
     try {
       var prefs = await SharedPreferences.getInstance();
       await prefs.setBool('first_open', false);
       await prefs.setString('saved_name', nameC.text.trim());
-      await prefs.setString('saved_phone', phoneC.text.trim()); // STEP 1: Save phone too
+      await prefs.setString('saved_phone', phoneC.text.trim());
 
-            var db = FirebaseFirestore.instance;
-      // STEP 7: Get this phone's push token
+      var db = FirebaseFirestore.instance;
       String fcmToken = '';
       try {
         fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
       } catch (_) {}
-     Map<String, dynamic> data = {'fullName': nameC.text.trim(), 'phone': phoneC.text.trim(), 'category': cat, 'role': 'Member', 'fcmToken': fcmToken, 'updatedAt': FieldValue.serverTimestamp()};
+
+      // 2. FIX - Use the role user PICKED, not always 'Member'
+      Map<String, dynamic> data = {
+        'fullName': nameC.text.trim(),
+        'phone': phoneC.text.trim(),
+        'category': cat,
+        'role': role, // ✅ Now uses picked role
+        'fcmToken': fcmToken,
+        'updatedAt': FieldValue.serverTimestamp()
+      };
       String docId = 'local';
 
       try {
         var q = await db.collection('members')
-  .where('fullName', isEqualTo: nameC.text.trim())
-  .where('phone', isEqualTo: phoneC.text.trim())
-  .limit(1).get().timeout(const Duration(seconds: 5));
+            .where('fullName', isEqualTo: nameC.text.trim())
+            .where('phone', isEqualTo: phoneC.text.trim())
+            .limit(1).get().timeout(const Duration(seconds: 5));
         if (q.docs.isEmpty) {
           data['createdAt'] = FieldValue.serverTimestamp();
           var d = await db.collection('members').add(data).timeout(const Duration(seconds: 5));
@@ -192,12 +240,40 @@ class _Login extends State<Login> {
           await db.collection('members').doc(docId).update(data).timeout(const Duration(seconds: 5));
           data = {...q.docs.first.data(), ...data};
         }
+
+        // 3. SAVE ROLE TO exec_roles - So GeneralSettings + Dashboard see it
+        // Create one exec_roles doc per group user is in
+        if (role != 'Member') {
+          var myGroups = groupsFromCat(cat!);
+          for (String g in myGroups) {
+            await db.collection('exec_roles').doc("${docId}_$g").set({
+              'memberId': docId,
+              'memberName': nameC.text.trim(),
+              'groupId': g,
+              'role': role,
+              'updatedBy': nameC.text.trim(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        } else {
+          // If picked Member, make sure no old exec_roles remain for this person
+          // (so they don't stay Ch.person after re-login as Member)
+          var old = await db.collection('exec_roles').where('memberId', isEqualTo: docId).get();
+          for (var d in old.docs) {
+            await d.reference.delete();
+          }
+        }
       } catch (_) {
-        // Firebase failed - still enter with local data, don't get stuck
+        // Firebase failed - still enter with local data
       }
 
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => GroupList(currentUser: data, docId: docId)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
