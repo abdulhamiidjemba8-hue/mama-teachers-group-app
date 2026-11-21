@@ -304,7 +304,7 @@ class GroupList extends StatelessWidget {
     if (c.contains("&")) return c.split("&").map((e) => e.trim()).toList();
     return [c];
   }
-  bool isExec() => (currentUser['role'] ?? 'Member') != 'Member' || isDev(currentUser['fullName'] ?? '');
+  bool isExec() => (currentUser['role'] ?? 'Member') == 'Ch.person' || isDev(currentUser['fullName'] ?? '');
   @override Widget build(BuildContext context) {
     var mine = myGroups();
     return Scaffold(appBar: AppBar(title: Text("Hello, ${currentUser['fullName']}"), backgroundColor: Colors.pink, foregroundColor: Colors.white, actions: [IconButton(icon: const Text("💿", style: TextStyle(fontSize: 24)), onPressed: () => showAd(context))]),
