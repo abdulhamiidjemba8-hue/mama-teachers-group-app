@@ -750,7 +750,35 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
         ListTile(leading: const Icon(Icons.settings), title: const Text("Settings"), onTap: () { Navigator.pop(context); tab.animateTo(7); }),
         ListTile(leading: const Icon(Icons.edit_note, color: Colors.blue), title: const Text("Secretary - Record Cash"), onTap: () { Navigator.pop(context); tab.animateTo(8); }),        ListTile(leading: const Icon(Icons.live_tv, color: Colors.red), title: const Text("Live Data - This Group"), onTap: () { Navigator.pop(context); tab.animateTo(9); }),
         ListTile(leading: const Icon(Icons.smart_toy), title: const Text("AI Cash Round Info"), onTap: () { Navigator.pop(context); aiInfo(); }),
-        ListTile(leading: const Icon(Icons.arrow_back), title: const Text("Back to Cash Round List"), onTap: () => Navigator.popUntil(context, (r) => r.isFirst)),
+        ListTile(leading: const Icon(Icons.arrow_back), title: const Text("Back to Cash Round List"), onTap: () => Navigator.popUntil(context, (r) => r.isFirst)),const Divider(),
+ListTile(
+  leading: const Icon(Icons.logout, color: Colors.red),
+  title: const Text("Logout", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+  onTap: () async {
+    Navigator.pop(context); // close drawer first
+    // ASK FIRST - Not direct logout
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text("Logout?"),
+        content: Text("Are you sure you want to logout, ${widget.currentUser['fullName']}?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text("Yes, Logout", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await FirebaseAuth.instance.signOut();
+      if (!context.mounted) return;
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (r) => false);
+    }
+  },
+),
       ])),
 floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
   backgroundColor: cfg.color,
