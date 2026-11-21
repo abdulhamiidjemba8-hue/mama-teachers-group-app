@@ -379,9 +379,46 @@ class _GeneralSettings extends State<GeneralSettings> {
                           DropdownButton<String>(
                             value: roles.contains(roleHere) ? roleHere : "Member",
                             items: roles.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                            onChanged: (v) async {
+                                                       onChanged: (v) async {
                               if (v == null) return;
-                              // FIX 6: NEVER update members.role — only exec_roles for THIS group
+
+                              // 1. Member is always allowed - no limit
+                              if (v == 'Member') {
+                                await FirebaseFirestore.instance.collection('exec_roles').doc("${d.id}_$selectedGroup").set({
+                                  'memberId': d.id,
+                                  'memberName': m['fullName'],
+                                  'groupId': selectedGroup,
+                                  'role': 'Member',
+                                  'updatedBy': widget.currentUser['fullName'],
+                                  'updatedAt': FieldValue.serverTimestamp(),
+                                });
+                                return;
+                              }
+
+                              // 2. CHECK: Does someone else already have this role in THIS group?
+                              var existing = await FirebaseFirestore.instance
+                                  .collection('exec_roles')
+                                  .where('groupId', isEqualTo: selectedGroup)
+                                  .where('role', isEqualTo: v)
+                                  .get();
+
+                              var others = existing.docs.where((doc) => (doc.data() as Map<String, dynamic>)['memberId'] != d.id).toList();
+
+                              // 3. BLOCK if second one
+                              if (others.isNotEmpty) {
+                                var holder = others.first.data() as Map<String, dynamic>;
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("❌ ${holder['memberName']} is already $v in Group $selectedGroup. Delete them or change them to Member first."),
+                                    backgroundColor: Colors.red,
+                                    duration: const Duration(seconds: 3),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // 4. No one else has it - Allow
                               await FirebaseFirestore.instance.collection('exec_roles').doc("${d.id}_$selectedGroup").set({
                                 'memberId': d.id,
                                 'memberName': m['fullName'],
