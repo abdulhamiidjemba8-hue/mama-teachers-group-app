@@ -745,11 +745,15 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     int totalMembers = allInGroup.length;
 
     var paidSnap = await FirebaseFirestore.instance.collection('cash_payments').where('groupId', isEqualTo: gid).where('roundId', isEqualTo: r).get();
-    int paidCount = paidSnap.docs.length;
+    Set<String> paidIdsAll = paidSnap.docs.map((d) => (d.data() as Map<String, dynamic>)['memberId'] as String).toSet();
+
+    // FIX: Only count PAID if member still exists in THIS group
+    var paidMembers = allInGroup.where((d) => paidIdsAll.contains(d.id)).toList();
+    int paidCount = paidMembers.length;
     int notPaidCount = totalMembers - paidCount;
     if (notPaidCount < 0) notPaidCount = 0;
     int totalCollected = paidCount * target;
-
+    int ghostCount = paidIdsAll.length - paidCount;
     var recSnap = await FirebaseFirestore.instance.collection('cash_received').where('groupId', isEqualTo: gid).where('roundId', isEqualTo: r).get();
     String receiver = recSnap.docs.isEmpty ? "No one yet" : (recSnap.docs.first.data() as Map<String, dynamic>)['memberName'] ?? "Unknown";
 
@@ -757,10 +761,10 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     int partialTotal = 0;
     for (var d in partialSnap.docs) { partialTotal += ((d.data() as Map<String, dynamic>)['paidSoFar'] ?? 0) as int; }
 
-    // Not paid names - first 5
-    Set<String> paidIds = paidSnap.docs.map((d) => (d.data() as Map<String, dynamic>)['memberId'] as String).toSet();
+        // Not paid names - first 5
+    Set<String> paidIds = paidIdsAll;
     var notPaidNames = allInGroup.where((d) => !paidIds.contains(d.id)).map((d) => (d.data() as Map<String, dynamic>)['fullName'] ?? '').take(5).toList();
-
+    var paidNames = paidMembers.map((d) => (d.data() as Map<String, dynamic>)['fullName'] ?? '').toList();
     if (!mounted) return;
     Navigator.pop(context); // close loading
 
