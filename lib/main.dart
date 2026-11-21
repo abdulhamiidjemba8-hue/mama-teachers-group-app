@@ -996,28 +996,103 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     }
   } catch (_) {}
 }
-  Widget buildChat() {
-    TextEditingController msgC = TextEditingController();
+ Widget buildChat() {
+  TextEditingController chatC = TextEditingController();
+  return StatefulBuilder(builder: (ctx, setSt) {
     return Column(children: [
-      Expanded(child: StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('cash_chats').where('groupId', isEqualTo: widget.groupId).orderBy('createdAt', descending: true).snapshots(), builder: (c, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-        return ListView.builder(reverse: true, itemCount: snap.data!.docs.length, itemBuilder: (_, i) { var m = snap.data!.docs[i].data() as Map<String, dynamic>; bool mine = m['sender'] == widget.currentUser['fullName']; return Align(alignment: mine ? Alignment.centerRight : Alignment.centerLeft, child: Container(margin: const EdgeInsets.all(6), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: mine ? cashGroups[widget.groupId]!.color : Colors.grey[200], borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(m['sender'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, color: mine ? Colors.white : Colors.black, fontSize: 11)), Text(m['text'] ?? '', style: TextStyle(color: mine ? Colors.white : Colors.black))]))); });
-      })),
-      Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: TextField(controller: msgC, decoration: InputDecoration(hintText: "Type cash message for Group ${widget.groupId}...", border: OutlineInputBorder(borderRadius: BorderRadius.circular(20))))), IconButton(icon: Icon(Icons.send, color: cashGroups[widget.groupId]!.color), onPressed: () { 
-  if (msgC.text.trim().isEmpty) return; 
-  String txt = msgC.text.trim();
-  FirebaseFirestore.instance.collection('cash_chats').add({
-    'groupId': widget.groupId,
-    'sender': widget.currentUser['fullName'],
-    'text': txt,
-    'createdAt': FieldValue.serverTimestamp(),
-    'readBy': [widget.currentUser['fullName']],
-  });
-  sendPushToGroup(widget.groupId, "💬 New Message - Group ${widget.groupId}", "${widget.currentUser['fullName']}: $txt", widget.currentUser['fullName']); 
-  msgC.clear(); 
-})])),
+      // Messages list
+      Expanded(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('group_chats')
+              .where('groupId', isEqualTo: widget.groupId)
+              .snapshots(),
+          builder: (c, snap) {
+            if (snap.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snap.hasData || snap.data!.docs.isEmpty) {
+              return const Center(child: Text("No messages yet.\nBe the first to send one!", textAlign: TextAlign.center));
+            }
+            // Sort in code - avoids Firestore index error that caused infinite loading
+            var docs = snap.data!.docs.toList();
+            docs.sort((a, b) {
+              var ta = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+              var tb = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+              if (ta == null || tb == null) return 0;
+              return ta.compareTo(tb);
+            });
+            bool isMe(String name) => name == widget.currentUser['fullName'];
+            return ListView.builder(
+              itemCount: docs.length,
+              padding: const EdgeInsets.all(12),
+              itemBuilder: (context, i) {
+                var m = docs[i].data() as Map<String, dynamic>;
+                bool me = isMe(m['senderName'] ?? '');
+                return Align(
+                  alignment: me ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: me ? Colors.pink : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(m['senderName'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: me ? Colors.white : Colors.black54)),
+                        Text(m['message'] ?? '', style: TextStyle(color: me ? Colors.white : Colors.black)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+      // Input + SEND button - ENABLED
+      Container(
+        padding: const EdgeInsets.all(8),
+        color: Colors.white,
+        child: Row(children: [
+          Expanded(
+            child: TextField(
+              controller: chatC,
+              decoration: InputDecoration(
+                hintText: "Type cash message for ${widget.groupId}...",
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(25)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          CircleAvatar(
+            backgroundColor: Colors.pink,
+            radius: 24,
+            child: IconButton(
+              icon: const Icon(Icons.send, color: Colors.white),
+              onPressed: () async {
+                String msg = chatC.text.trim();
+                if (msg.isEmpty) return;
+                chatC.clear();
+                // Push to Firestore - everyone in group will get it instantly
+                await FirebaseFirestore.instance.collection('group_chats').add({
+                  'groupId': widget.groupId,
+                  'senderName': widget.currentUser['fullName'] ?? 'Member',
+                  'senderPhone': widget.currentUser['phone'] ?? '',
+                  'message': msg,
+                  'createdAt': FieldValue.serverTimestamp(),
+                });
+              },
+            ),
+          ),
+        ]),
+      ),
     ]);
-  }
+  });
+}
     Widget buildSettings() {
   if (!isExec) {
     return Center(child: Padding(
