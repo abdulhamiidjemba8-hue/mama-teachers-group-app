@@ -220,7 +220,7 @@ if (role == 'Ch.person') {
         'fullName': nameC.text.trim(),
         'phone': phoneC.text.trim(),
         'category': cat,
-        'role': role, // ✅ Now uses picked role
+        'role': role, // keep for display only, real role is in exec_roles
         'fcmToken': fcmToken,
         'updatedAt': FieldValue.serverTimestamp()
       };
