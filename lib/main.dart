@@ -267,64 +267,154 @@ class GeneralSettings extends StatefulWidget {
 }
 
 class _GeneralSettings extends State<GeneralSettings> {
+  // FIX 1: Only single groups. No "A & B", no "All" — that's what caused confusion
   String selectedGroup = 'A';
-  final groups = ["A", "B", "C", "A & B", "A & C", "B & C", "All"];
+  final groups = ["A", "B", "C"];
+  final roles = ["Ch.person", "Secretary", "Treasure", "Member"];
+
+  // Which person is selected for long-press delete
+  String? selectedForDeleteId;
 
   bool inSelectedGroup(Map<String, dynamic> m) {
     String c = m['category'] ?? '';
-    if (selectedGroup == "All") return true;
-    if (selectedGroup.contains("&")) {
-      var parts = selectedGroup.split("&").map((e) => e.trim()).toList();
-      if (c == "All") return true;
-      for (var p in parts) { if (c.contains(p)) return true; }
-      return false;
-    }
     if (c == "All") return true;
     if (c == selectedGroup) return true;
     if (c.contains("&") && c.contains(selectedGroup)) return true;
     return false;
   }
 
+  // FIX 2: Get role FOR THIS GROUP ONLY from exec_roles
+  String roleForGroup(String memberId, Map<String, dynamic> execMap) {
+    return execMap["${memberId}_$selectedGroup"] ?? "Member";
+  }
+
   Future<void> deleteMember(String docId, String name) async {
-    bool ok = await showDialog(context: context, builder: (_) => AlertDialog(
-      title: Text("Delete $name?"),
-      content: Text("This will remove $name from the App. Only executive can do this."),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("DELETE", style: TextStyle(color: Colors.red))),
-      ],
-    )) ?? false;
+    bool ok = await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("Delete $name?"),
+        content: Text("This will remove $name from the App completely. Only executive can do this."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("DELETE", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    ) ?? false;
     if (!ok) return;
     await FirebaseFirestore.instance.collection('members').doc(docId).delete();
+    // Also clean exec roles for this person
+    var execs = await FirebaseFirestore.instance.collection('exec_roles').where('memberId', isEqualTo: docId).get();
+    for (var d in execs.docs) { await d.reference.delete(); }
     if (!mounted) return;
+    setState(() => selectedForDeleteId = null);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name deleted")));
   }
 
-  @override Widget build(BuildContext context) => Scaffold(
+  @override
+  Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text("General Settings - Executives"), backgroundColor: Colors.orange),
     body: Column(children: [
-      Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text("1. Choose group to manage:", style: TextStyle(fontWeight: FontWeight.bold)),
-        DropdownButton<String>(value: selectedGroup, isExpanded: true, items: groups.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setState(() => selectedGroup = v!)),
-        const SizedBox(height: 8),
-        const Text("2. Set who is Ch.person / Secretary / Treasure in THIS group. Tap trash to delete member.", style: TextStyle(color: Colors.grey)),
-      ])),
-      Expanded(child: StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('members').snapshots(), builder: (ctx, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-        var list = snap.data!.docs.where((d) => inSelectedGroup(d.data() as Map<String, dynamic>)).toList();
-        return ListView(children: list.map((d) {
-          var m = d.data() as Map<String, dynamic>;
-          return Card(child: ListTile(
-            title: Text(m['fullName'] ?? ''),
-            subtitle: Text("Cash Round: ${m['category']} | Position: ${m['role']} | ${m['phone']}"),
-            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-              DropdownButton<String>(value: m['role'], items: ["Ch.person", "Secretary", "Treasure", "Member"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: (v) async {
-                  await FirebaseFirestore.instance.collection('members').doc(d.id).update({'role': v});
-                  await FirebaseFirestore.instance.collection('exec_roles').doc("${d.id}_$selectedGroup").set({
-                    'memberId': d.id, 'memberName': m['fullName'], 'groupId': selectedGroup, 'role': v, 'updatedBy': widget.currentUser['fullName'],
-                  });
-                }),
+      Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text("1. Choose group to manage:", style: TextStyle(fontWeight: FontWeight.bold)),
+          DropdownButton<String>(
+            value: selectedGroup,
+            isExpanded: true,
+            items: groups.map((e) => DropdownMenuItem(value: e, child: Text("Group $e"))).toList(),
+            onChanged: (v) => setState(() {
+              selectedGroup = v!;
+              selectedForDeleteId = null; // clear delete selection when group changes
+            }),
+          ),
+          const SizedBox(height: 8),
+          // FIX 3: MAKE IT CLEAR - Big banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.orange)),
+            child: Text(
+              "You are now managing ONLY Group $selectedGroup\nChanges here will NOT affect Group ${selectedGroup == 'A' ? 'B or C' : selectedGroup == 'B' ? 'A or C' : 'A or B'}",
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text("2. Long-press a person to show DELETE. Use dropdown to set position in THIS group only.", style: TextStyle(color: Colors.grey)),
+        ]),
+      ),
+      Expanded(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('exec_roles').snapshots(),
+          builder: (ctxExec, execSnap) {
+            // Build map: "memberId_Group" -> role
+            Map<String, dynamic> execMap = {};
+            if (execSnap.hasData) {
+              for (var d in execSnap.data!.docs) {
+                var e = d.data() as Map<String, dynamic>;
+                execMap["${e['memberId']}_${e['groupId']}"] = e['role'];
+              }
+            }
+            return StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('members').snapshots(),
+              builder: (ctx, snap) {
+                if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+                var list = snap.data!.docs.where((d) => inSelectedGroup(d.data() as Map<String, dynamic>)).toList();
+                return ListView(children: list.map((d) {
+                  var m = d.data() as Map<String, dynamic>;
+                  // FIX 4: Read role for THIS group only
+                  String roleHere = roleForGroup(d.id, execMap);
+                  bool showDelete = selectedForDeleteId == d.id;
+                  return GestureDetector(
+                    // FIX 5: LONG PRESS TO DELETE
+                    onLongPress: () => setState(() => selectedForDeleteId = d.id),
+                    onTap: () {
+                      if (showDelete) setState(() => selectedForDeleteId = null);
+                    },
+                    child: Card(
+                      color: showDelete ? Colors.red.shade50 : null,
+                      child: ListTile(
+                        title: Text(m['fullName'] ?? ''),
+                        subtitle: Text("Cash Round: ${m['category']} | Position in Group $selectedGroup: $roleHere | ${m['phone']}"),
+                        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                          DropdownButton<String>(
+                            value: roles.contains(roleHere) ? roleHere : "Member",
+                            items: roles.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                            onChanged: (v) async {
+                              if (v == null) return;
+                              // FIX 6: NEVER update members.role — only exec_roles for THIS group
+                              await FirebaseFirestore.instance.collection('exec_roles').doc("${d.id}_$selectedGroup").set({
+                                'memberId': d.id,
+                                'memberName': m['fullName'],
+                                'groupId': selectedGroup,
+                                'role': v,
+                                'updatedBy': widget.currentUser['fullName'],
+                                'updatedAt': FieldValue.serverTimestamp(),
+                              });
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("${m['fullName']} is now $v in Group $selectedGroup ONLY")),
+                              );
+                            },
+                          ),
+                          // Delete icon appears ONLY after long-press
+                          if (showDelete)
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => deleteMember(d.id, m['fullName'] ?? ''),
+                            ),
+                        ]),
+                      ),
+                    ),
+                  );
+                }).toList());
+              },
+            );
+          },
+        ),
+      ),
+    ]),
+  );
+}
               IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => deleteMember(d.id, m['fullName'] ?? '')),
             ]),
           ));
