@@ -536,8 +536,10 @@ class _Dashboard extends State<Dashboard> with SingleTickerProviderStateMixin {
   _load();
   // STEP 5: When user opens Chat tab (index 6), mark all as read
   tab.addListener(() {
-    if (tab.index == 6) markChatAsRead();
-  });
+  if (tab.indexIsChanging) return;
+  setState(() {}); // <-- THIS is the fix, rebuilds to hide "?"
+  if (tab.index == 6) markChatAsRead();
+});
       // PLAN B listener
   FirebaseFirestore.instance.collection('notifications')
     .where('groupId', isEqualTo: widget.groupId)
