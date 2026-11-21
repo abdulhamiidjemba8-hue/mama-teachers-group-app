@@ -578,8 +578,28 @@ class _Dashboard extends State<Dashboard> with SingleTickerProviderStateMixin {
     'lastPaidBy': widget.currentUser['fullName'], 'updatedAt': FieldValue.serverTimestamp(),
   });
 }
-
 Widget buildSecretary(List<QueryDocumentSnapshot> members) {
+  // ONLY Ch.person, Secretary, Treasure can record
+  if (!isExec) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock, size: 60, color: Colors.grey),
+            const SizedBox(height: 12),
+            Text(
+              "🔒 Only Ch.person, Secretary or Treasure can record cash.\n\nYou are: ${widget.currentUser['role']}",
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   return StreamBuilder<QuerySnapshot>(
     stream: FirebaseFirestore.instance.collection('partial_payments')
       .where('groupId', isEqualTo: widget.groupId)
