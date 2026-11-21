@@ -550,7 +550,24 @@ class _Dashboard extends State<Dashboard> with SingleTickerProviderStateMixin {
       );
     });
 }
-  Future<void> _load() async {
+    Future<void> _load() async {
+    // 1. Load my REAL role for THIS group from exec_roles
+    try {
+      var q = await FirebaseFirestore.instance
+          .collection('exec_roles')
+          .where('groupId', isEqualTo: widget.groupId)
+          .where('memberName', isEqualTo: widget.currentUser['fullName'])
+          .limit(1)
+          .get();
+      if (q.docs.isNotEmpty) {
+        setState(() {
+          myRoleInGroup = (q.docs.first.data() as Map<String, dynamic>)['role'] ?? 'Member';
+        });
+      } else {
+        setState(() => myRoleInGroup = 'Member');
+      }
+    } catch (_) {}
+
     var doc = await FirebaseFirestore.instance.collection('cash_round_settings').doc(widget.groupId).get();
     if (doc.exists) { var d = doc.data()!; setState(() { cashGroups[widget.groupId]!.contribution = d['contribution'] ?? cashGroups[widget.groupId]!.contribution; cashGroups[widget.groupId]!.cycle = d['cycle'] ?? cashGroups[widget.groupId]!.cycle; if (d['color'] != null) cashGroups[widget.groupId]!.color = Color(d['color']); }); }
   }
