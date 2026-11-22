@@ -1032,7 +1032,10 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
           var notPaidM = all.where((d) => !paidIds.contains(d.id)).toList();
  return TabBarView(controller: tab, children: [buildAll(all, execMap), buildPay(all, paidIds), buildPaid(paidM), buildNotPaid(notPaidM), buildReceived(all, paidIds), buildPast(), buildChat(), buildSettings(execMap), buildSecretary(all), buildLive(all, paidIds, execMap)]);
         });
-      }));
+      });
+    },
+  ),
+);
   }
   Widget buildLive(List<QueryDocumentSnapshot> members, Set<String> paidIds, Map<String, String> execMap) {
     String r = currentRoundId(widget.groupId);
