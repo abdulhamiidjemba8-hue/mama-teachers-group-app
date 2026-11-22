@@ -1030,7 +1030,7 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
           if (paySnap.hasData) paidIds = paySnap.data!.docs.map((d) => (d.data() as Map<String, dynamic>)['memberId'] as String).toSet();
           var paidM = all.where((d) => paidIds.contains(d.id)).toList();
           var notPaidM = all.where((d) => !paidIds.contains(d.id)).toList();
- return TabBarView(controller: tab, children: [buildAll(all, execMap), buildPay(all, paidIds), buildPaid(paidM), buildNotPaid(notPaidM), buildReceived(all, paidIds), buildPast(), buildChat(), buildSettings(), buildSecretary(all), buildLive(all, paidIds, execMap)]);
+ return TabBarView(controller: tab, children: [buildAll(all, execMap), buildPay(all, paidIds), buildPaid(paidM), buildNotPaid(notPaidM), buildReceived(all, paidIds), buildPast(), buildChat(), buildSettings(execMap), buildSecretary(all), buildLive(all, paidIds, execMap)]);
         });
       }));
   }
