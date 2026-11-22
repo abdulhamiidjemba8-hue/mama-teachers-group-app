@@ -1247,7 +1247,7 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
   }
   Future<void> markChatAsRead() async {
   try {
-    var q = await FirebaseFirestore.instance.collection('cash_chats')
+    var q = await FirebaseFirestore.instance.collection('group_chats')
         .where('groupId', isEqualTo: widget.groupId).get();
     String myName = widget.currentUser['fullName'] ?? '';
     for (var d in q.docs) {
