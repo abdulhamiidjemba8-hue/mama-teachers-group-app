@@ -1006,10 +1006,24 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
   onPressed: aiInfo,
   child: const Text("?", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
 ),
-      body: StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('members').snapshots(), builder: (ctx, memSnap) {
-        if (!memSnap.hasData) return const Center(child: CircularProgressIndicator());
-        var all = memSnap.data!.docs.where((d) => inGroup(d.data() as Map<String, dynamic>, widget.groupId)).toList();
-        all.sort((a, b) { int rank(String r) => r == "Ch.person" ? 0 : r == "Secretary" ? 1 : r == "Treasure" ? 2 : 3; return rank((a.data() as Map<String, dynamic>)['role'] ?? 'Member').compareTo(rank((b.data() as Map<String, dynamic>)['role'] ?? 'Member')); });
+  body: StreamBuilder<QuerySnapshot>(
+  stream: FirebaseFirestore.instance.collection('exec_roles').where('groupId', isEqualTo: widget.groupId).snapshots(),
+  builder: (ctxExec, execSnap) {
+    Map<String, String> execMap = {};
+    if (execSnap.hasData) {
+      for (var e in execSnap.data!.docs) {
+        var d = e.data() as Map<String, dynamic>;
+        execMap[d['memberId']] = d['role'];
+      }
+    }
+    return StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('members').snapshots(), builder: (ctx, memSnap) {
+      if (!memSnap.hasData) return const Center(child: CircularProgressIndicator());
+      var all = memSnap.data!.docs.where((d) => inGroup(...)).toList();
+      // FIX 6: Sort by PER-GROUP role, not members role
+      all.sort((a, b) {
+        int rank(String r) => r == "Ch.person" ? 0 : r == "Secretary" ? 1 : r == "Treasure" ? 2 : 3;
+        return rank(execMap[a.id] ?? 'Member').compareTo(rank(execMap[b.id] ?? 'Member'));
+      });
         String round = currentRoundId(widget.groupId);
         return StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('cash_payments').where('groupId', isEqualTo: widget.groupId).where('roundId', isEqualTo: round).snapshots(), builder: (ctx2, paySnap) {
           Set<String> paidIds = {};
