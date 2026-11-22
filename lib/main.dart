@@ -564,6 +564,7 @@ class _Dashboard extends State<Dashboard> with SingleTickerProviderStateMixin {
           .collection('exec_roles')
           .where('groupId', isEqualTo: widget.groupId)
           .where('memberName', isEqualTo: widget.currentUser['fullName'])
+// Keep as is for now, but after FIX 3, memberName is always nameTrim, so it will match
           .limit(1)
           .get();
       if (q.docs.isNotEmpty) {
