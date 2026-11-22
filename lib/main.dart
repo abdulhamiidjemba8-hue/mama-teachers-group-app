@@ -423,8 +423,15 @@ class _GeneralSettings extends State<GeneralSettings> {
               stream: FirebaseFirestore.instance.collection('members').snapshots(),
               builder: (ctx, snap) {
                 if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-                var list = snap.data!.docs.where((d) => inSelectedGroup(d.data() as Map<String, dynamic>)).toList();
-                return ListView(children: list.map((d) {
+                var rawList = snap.data!.docs.where((d) => inSelectedGroup(d.data() as Map<String, dynamic>)).toList();
+// DEDUP BY NAME - keep first doc only
+Map<String, QueryDocumentSnapshot> seen = {};
+for (var d in rawList) {
+  String key = norm((d.data() as Map<String, dynamic>)['fullName_lower'] ?? (d.data() as Map<String, dynamic>)['fullName'] ?? '');
+  if (!seen.containsKey(key)) seen[key] = d;
+}
+var list = seen.values.toList();
+return ListView(children: list.map((d) {
                   var m = d.data() as Map<String, dynamic>;
                   // FIX 4: Read role for THIS group only
                   String roleHere = roleForGroup(d.id, execMap);
