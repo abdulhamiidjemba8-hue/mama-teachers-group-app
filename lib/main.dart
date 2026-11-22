@@ -1386,7 +1386,7 @@ Widget buildChat() {
   if (!isChPerson) {
     return Center(child: Padding(
       padding: const EdgeInsets.all(20),
-      child: Text("🔒 Only Ch.person of Group ${widget.groupId} can open Settings.\n\nYou are: ${widget.currentUser['role']}", in this group.", textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+      child: Text("🔒 Only Ch.person of Group ${widget.groupId} can open Settings.\n\nYou are: $myRoleInGroup in this group.", textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.grey)),
     ));
   }
   TextEditingController amtC = TextEditingController(text: cashGroups[widget.groupId]!.contribution.toString());
