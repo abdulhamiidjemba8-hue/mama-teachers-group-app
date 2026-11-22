@@ -1034,7 +1034,7 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
         });
       }));
   }
-  Widget buildLive(List<QueryDocumentSnapshot> members, Set<String> paidIds) {
+  Widget buildLive(List<QueryDocumentSnapshot> members, Set<String> paidIds, Map<String, String> execMap) {
     String r = currentRoundId(widget.groupId);
     int target = cashGroups[widget.groupId]!.contribution;
     return StreamBuilder<QuerySnapshot>(
