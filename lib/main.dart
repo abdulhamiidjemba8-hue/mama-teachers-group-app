@@ -1382,7 +1382,7 @@ Widget buildChat() {
     ]);
   });
 }
-   Widget buildSettings() {
+   Widget buildSettings(Map<String, String> execMap) {
   if (!isChPerson) {
     return Center(child: Padding(
       padding: const EdgeInsets.all(20),
@@ -1422,7 +1422,7 @@ Widget buildChat() {
             var m = d.data() as Map<String, dynamic>;
             return Card(child: ListTile(
               title: Text(m['fullName'] ?? ''),
-              subtitle: Text("${m['role']} • ${m['phone']}"),
+              subtitle: Text("${execMap[d.id] ?? 'Member'} • ${m['phone']}"),
               trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async {
                 bool ok = await showDialog(context: context, builder: (_) => AlertDialog(
                   title: Text("Remove ${m['fullName']} from Group ${widget.groupId}?"),
