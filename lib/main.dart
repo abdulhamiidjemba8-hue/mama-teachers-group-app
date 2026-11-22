@@ -941,7 +941,7 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
           unread = snap.data!.docs.where((d) {
             var m = d.data() as Map<String, dynamic>;
             List readBy = m['readBy'] ?? [];
-            return !readBy.contains(myName) && m['sender'] != myName;
+            return !readBy.contains(myName) && m['senderName'] != myName;
           }).length;
         }
         return Stack(children: [
