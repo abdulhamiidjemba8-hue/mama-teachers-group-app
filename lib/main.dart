@@ -60,8 +60,9 @@ String roundLabel(String gid) {
   return "${DateFormat('dd MMM').format(sunday)} - ${DateFormat('dd MMM yyyy').format(sat)}";
 }
 
-bool isDev(String name) => name.trim().toLowerCase() == devName.toLowerCase();
+bool isDev(String name) => norm(name) == norm(devName);
 String fmt(int v) => NumberFormat('#,###').format(v);
+String norm(String s) => s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 
 // STEP 8 - PLAN B: No Server Key needed
 Future<void> sendPushToGroup(String gid, String title, String body, String senderName) async {
