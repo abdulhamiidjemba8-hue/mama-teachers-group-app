@@ -427,6 +427,13 @@ class _GeneralSettings extends State<GeneralSettings> {
             ),
           ),
           const SizedBox(height: 8),
+          // FIX 5 BUTTON - DELETE AFTER ONE USE
+ElevatedButton(
+  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+  onPressed: cleanDuplicates,
+  child: const Text("CLEAN DUPLICATES - RUN ONCE", style: TextStyle(color: Colors.white)),
+),
+const SizedBox(height: 8),
           const Text("2. Long-press a person to show DELETE. Use dropdown to set position in THIS group only.", style: TextStyle(color: Colors.grey)),
         ]),
       ),
