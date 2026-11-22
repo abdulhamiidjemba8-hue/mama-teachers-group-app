@@ -245,9 +245,16 @@ Map<String, dynamic> data = {
 String docId = 'local';
 try {
   var q = await db.collection('members')
-      .where('fullName_lower', isEqualTo: nameLower)
-            .limit(1).get().timeout(const Duration(seconds: 5));
-        if (q.docs.isEmpty) {
+    .where('fullName_lower', isEqualTo: nameLower)
+    .limit(1).get().timeout(const Duration(seconds: 5));
+// FALLBACK for old docs
+if (q.docs.isEmpty) {
+  var q2 = await db.collection('members')
+      .where('fullName', isEqualTo: nameTrim)
+      .limit(1).get().timeout(const Duration(seconds: 5));
+  if (q2.docs.isNotEmpty) q = q2;
+}
+if (q.docs.isEmpty) {
           data['createdAt'] = FieldValue.serverTimestamp();
           var d = await db.collection('members').add(data).timeout(const Duration(seconds: 5));
           docId = d.id;
