@@ -200,7 +200,7 @@ if (role == 'Ch.person') {
         // We don't know our docId yet, so check by name - if holder name != my name, block
         var others = existing.docs.where((doc) {
           var e = doc.data() as Map<String, dynamic>;
-          return (e['memberName'] ?? '').toString().trim().toLowerCase() != nameC.text.trim().toLowerCase();
+          return norm((e['memberName'] ?? '').toString()) != norm(nameC.text);
         }).toList();
 
         if (others.isNotEmpty) {
