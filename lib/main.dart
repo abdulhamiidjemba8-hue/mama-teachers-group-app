@@ -397,7 +397,48 @@ class _GeneralSettings extends State<GeneralSettings> {
     setState(() => selectedForDeleteId = null);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name deleted")));
   }
+  // FIX 5 - ONE TIME CLEAN - Delete duplicate by NAME, keep first one
+  Future<void> cleanDuplicates() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Cleaning duplicates... wait")),
+    );
 
+    var all = await FirebaseFirestore.instance.collection('members').get();
+    Map<String, String> seen = {}; // nameLower -> first docId to KEEP
+    int deleted = 0;
+
+    for (var doc in all.docs) {
+      var m = doc.data() as Map<String, dynamic>;
+      String key = norm((m['fullName_lower'] ?? m['fullName'] ?? '').toString());
+      if (key.isEmpty) continue;
+
+      if (!seen.containsKey(key)) {
+        // First time we see this name - KEEP it, and fix it to have fullName_lower
+        seen[key] = doc.id;
+        if (m['fullName_lower'] == null) {
+          await FirebaseFirestore.instance.collection('members').doc(doc.id).update({
+            'fullName_lower': key,
+          });
+        }
+      } else {
+        // Duplicate found - DELETE second one
+        // Example: Second Jemba Abdulhamiid Member will be deleted,
+        // First Jemba Abdulhamiid Secretary will stay
+        await FirebaseFirestore.instance.collection('members').doc(doc.id).delete();
+        // Also delete its exec_roles
+        var execs = await FirebaseFirestore.instance.collection('exec_roles').where('memberId', isEqualTo: doc.id).get();
+        for (var e in execs.docs) {
+          await e.reference.delete();
+        }
+        deleted++;
+      }
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Done! Deleted $deleted duplicate(s). Jemba now appears once.")),
+    );
+  }
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text("General Settings - Executives"), backgroundColor: Colors.orange),
