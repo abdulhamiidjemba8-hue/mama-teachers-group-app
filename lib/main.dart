@@ -1077,7 +1077,7 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
                 return Card(color: isPaid ? Colors.green[50] : Colors.white, child: ListTile(
                   leading: CircleAvatar(backgroundColor: isPaid ? Colors.green : Colors.red, child: Text((m['fullName'] ?? '?')[0], style: const TextStyle(color: Colors.white))),
                   title: Text(m['fullName'] ?? ''),
-                  subtitle: Text("${m['role']} • ${m['phone']}\nSecretary recorded: ${fmt(soFar)} / ${fmt(target)} ${isRec ? '• 🎁 RECEIVED' : ''}"),
+                  subtitle: Text("${execMap[d.id] ?? 'Member'} • ${m['phone']}\nSecretary recorded: ${fmt(soFar)} / ${fmt(target)} ${isRec ? '• 🎁 RECEIVED' : ''}"),
                   isThreeLine: true,
                   trailing: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: isPaid ? Colors.green : Colors.red, borderRadius: BorderRadius.circular(6)), child: Text(isPaid ? "PAID ✅" : "NOT PAID ❌", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
                 ));
