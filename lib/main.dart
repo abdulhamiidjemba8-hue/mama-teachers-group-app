@@ -932,7 +932,7 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
   actions: [
     // STEP 5: Unread chat badge
     StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('cash_chats').where('groupId', isEqualTo: widget.groupId).snapshots(),
+      stream: FirebaseFirestore.instance.collection('group_chats').where('groupId', isEqualTo: widget.groupId).snapshots(),
       builder: (c, snap) {
         int unread = 0;
         if (snap.hasData) {
