@@ -232,7 +232,6 @@ if (role == 'Ch.person') {
       } catch (_) {}
 
       // 2. FIX - Use the role user PICKED, not always 'Member'
-     String nameTrim = nameC.text.trim();
 String nameLower = norm(nameTrim);
 Map<String, dynamic> data = {
   'fullName': nameTrim,
