@@ -123,7 +123,7 @@ class _Splash extends State<Splash> {
     .where('fullName_lower', isEqualTo: norm(saved ?? ''))
     .limit(1)
     .get();
-
+    .timeout(const Duration(seconds: 8));
 // FALLBACK for old members who have no fullName_lower yet
 if (q.docs.isEmpty) {
   var q2 = await FirebaseFirestore.instance
@@ -139,7 +139,7 @@ if (q.docs.isEmpty) {
     q = q2;
   }
 }
-          .timeout(const Duration(seconds: 8));
+          
 
       if (q.docs.isEmpty) {
         if (!mounted) return;
@@ -1018,7 +1018,7 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
     }
     return StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('members').snapshots(), builder: (ctx, memSnap) {
       if (!memSnap.hasData) return const Center(child: CircularProgressIndicator());
-      var all = memSnap.data!.docs.where((d) => inGroup(...)).toList();
+      var all = memSnap.data!.docs.where((d) => inGroup(d.data() as Map<String, dynamic>, widget.groupId)).toList();
       // FIX 6: Sort by PER-GROUP role, not members role
       all.sort((a, b) {
         int rank(String r) => r == "Ch.person" ? 0 : r == "Secretary" ? 1 : r == "Treasure" ? 2 : 3;
