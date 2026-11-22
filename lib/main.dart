@@ -221,7 +221,7 @@ if (role == 'Ch.person') {
     try {
       var prefs = await SharedPreferences.getInstance();
       await prefs.setBool('first_open', false);
-      await prefs.setString('saved_name', nameC.text.trim());
+      await prefs.setString('saved_name', nameTrim);
       await prefs.setString('saved_phone', phoneC.text.trim());
 
       var db = FirebaseFirestore.instance;
