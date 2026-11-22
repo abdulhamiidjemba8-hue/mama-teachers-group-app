@@ -122,7 +122,7 @@ class _Splash extends State<Splash> {
     .collection('members')
     .where('fullName_lower', isEqualTo: norm(saved ?? ''))
     .limit(1)
-    .get();
+    .get()
     .timeout(const Duration(seconds: 8));
 // FALLBACK for old members who have no fullName_lower yet
 if (q.docs.isEmpty) {
