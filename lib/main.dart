@@ -121,8 +121,24 @@ class _Splash extends State<Splash> {
       var q = await FirebaseFirestore.instance
     .collection('members')
     .where('fullName_lower', isEqualTo: norm(saved ?? ''))
-          .limit(1)
-          .get()
+    .limit(1)
+    .get();
+
+// FALLBACK for old members who have no fullName_lower yet
+if (q.docs.isEmpty) {
+  var q2 = await FirebaseFirestore.instance
+      .collection('members')
+      .where('fullName', isEqualTo: saved)
+      .limit(1)
+      .get();
+  if (q2.docs.isNotEmpty) {
+    // Fix old doc now - add fullName_lower so next time it works
+    await FirebaseFirestore.instance.collection('members').doc(q2.docs.first.id).update({
+      'fullName_lower': norm(saved ?? ''),
+    });
+    q = q2;
+  }
+}
           .timeout(const Duration(seconds: 8));
 
       if (q.docs.isEmpty) {
