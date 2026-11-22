@@ -219,8 +219,9 @@ if (role == 'Ch.person') {
     }
 
     try {
-      var prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('first_open', false);
+  String nameTrim = nameC.text.trim();
+  var prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('first_open', false);
       await prefs.setString('saved_name', nameTrim);
       await prefs.setString('saved_phone', phoneC.text.trim());
 
