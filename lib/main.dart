@@ -215,20 +215,21 @@ if (role == 'Ch.person') {
       } catch (_) {}
 
       // 2. FIX - Use the role user PICKED, not always 'Member'
-      Map<String, dynamic> data = {
-        'fullName': nameC.text.trim(),
-        'phone': phoneC.text.trim(),
-        'category': cat,
-        'role': role, // keep for display only, real role is in exec_roles
-        'fcmToken': fcmToken,
-        'updatedAt': FieldValue.serverTimestamp()
-      };
-      String docId = 'local';
-
-      try {
-        var q = await db.collection('members')
-            .where('fullName', isEqualTo: nameC.text.trim())
-            .where('phone', isEqualTo: phoneC.text.trim())
+     String nameTrim = nameC.text.trim();
+String nameLower = norm(nameTrim);
+Map<String, dynamic> data = {
+  'fullName': nameTrim,
+  'fullName_lower': nameLower, // NEW - this stops duplicate
+  'phone': phoneC.text.trim(),
+  'category': cat,
+  'role': role,
+  'fcmToken': fcmToken,
+  'updatedAt': FieldValue.serverTimestamp()
+};
+String docId = 'local';
+try {
+  var q = await db.collection('members')
+      .where('fullName_lower', isEqualTo: nameLower)
             .limit(1).get().timeout(const Duration(seconds: 5));
         if (q.docs.isEmpty) {
           data['createdAt'] = FieldValue.serverTimestamp();
