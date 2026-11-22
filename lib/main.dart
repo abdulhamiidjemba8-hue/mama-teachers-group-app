@@ -1091,7 +1091,7 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
   Widget buildAll(List<QueryDocumentSnapshot> members, Map<String, String> execMap) => ListView(children: [
     Padding(padding: const EdgeInsets.all(12), child: Text("EXECUTIVE COMMITTEE", style: TextStyle(fontWeight: FontWeight.bold, color: cashGroups[widget.groupId]!.color))),
     ...members.where((d) => (execMap[d.id] ?? 'Member') != 'Member').map((d) { var m = d.data() as Map<String, dynamic>; return Card(color: Colors.amber[50], child: ListTile(leading: CircleAvatar(child: Text((m['fullName'] ?? '')[0])), title: Text(m['fullName'] ?? ''), subtitle: Text("${execMap[d.id] ?? 'Member'} • ${m['phone']}"), trailing: Chip(label: Text(execMap[d.id] ?? 'Member', style: const TextStyle(color: Colors.white, fontSize: 11)), backgroundColor: Colors.orange))); }),
-    Padding(padding: const EdgeInsets.all(12), child: Text("OTHER MEMBERS (${members.where((d) => (execMap[d.id] ?? 'Member') == 'Member'.length})", style: const TextStyle(fontWeight: FontWeight.bold))),
+    Padding(padding: const EdgeInsets.all(12), child: Text("OTHER MEMBERS (${members.where((d) => (execMap[d.id] ?? 'Member') == 'Member').length})", style: const TextStyle(fontWeight: FontWeight.bold))),
     ...members.where((d) => (execMap[d.id] ?? 'Member') == 'Member'.map((d) { var m = d.data() as Map<String, dynamic>; return Card(child: ListTile(leading: CircleAvatar(backgroundColor: cashGroups[widget.groupId]!.color, child: Text((m['fullName'] ?? '')[0], style: const TextStyle(color: Colors.white))), title: Text(m['fullName'] ?? ''), subtitle: Text("${m['phone']} • Member"))); }),
   ]);
   Widget buildPay(List<QueryDocumentSnapshot> members, Set<String> paidIds) => ListView(children: [
