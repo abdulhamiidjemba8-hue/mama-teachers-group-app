@@ -870,7 +870,7 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
           if (notPaidCount > 5) Text("... and ${notPaidCount - 5} more"),
         ] else const Text("🎉 Everyone has paid this round!"),
         const SizedBox(height: 10),
-        Text("You are: ${widget.currentUser['fullName']} - ${widget.currentUser['role']} in Group $gid"),
+        Text("You are: ${widget.currentUser['fullName']} - $myRoleInGroup in Group $gid"),
         const SizedBox(height: 10),
         const Text("How it works: 1. Secretary records partial cash. 2. When full amount reached, executive marks PAID. 3. One PAID member receives total and is marked RECEIVED. 4. Next round starts automatically.", style: TextStyle(color: Colors.grey, fontSize: 13)),
       ])),
