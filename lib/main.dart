@@ -582,7 +582,7 @@ return ListView(children: list.map((d) {
                     child: Card(
                       color: showDelete ? Colors.red.shade50 : null,
                       child: ListTile(
-                        title: Text(m['fullName'] ?? ''),
+                                               title: Row(children: [Expanded(child: Text(m['fullName'] ?? '')), if ((m['noSmartphone'] ?? false) == true) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange)), child: const Text("📵 No Phone", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.deepOrange)))]),
                         subtitle: Text("Cash Round: ${m['category']} | Position in Group $selectedGroup: $roleHere | ${m['phone']}"),
                         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                           DropdownButton<String>(
