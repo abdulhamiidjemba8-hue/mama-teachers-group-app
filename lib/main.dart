@@ -397,6 +397,65 @@ class _GeneralSettings extends State<GeneralSettings> {
     setState(() => selectedForDeleteId = null);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name deleted")));
   }
+    // ADD MEMBER WITHOUT SMARTPHONE - Executive registers for them
+  Future<void> addMemberNoPhone() async {
+    TextEditingController nameC = TextEditingController();
+    TextEditingController phoneC = TextEditingController();
+    String cat = selectedGroup; // Default = Group you are managing now
+
+    bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(
+        title: const Text("Add Member - No Smartphone"),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text("This member has no phone. Executive registers for them. They will appear in App like normal member.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+          const SizedBox(height: 12),
+          TextField(controller: nameC, decoration: const InputDecoration(labelText: "Full Name *", border: OutlineInputBorder(), prefixIcon: Icon(Icons.person))),
+          const SizedBox(height: 10),
+          TextField(controller: phoneC, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "Phone / Contact (if any)", border: OutlineInputBorder(), prefixIcon: Icon(Icons.phone))),
+          const SizedBox(height: 10),
+          DropdownButton<String>(value: cat, isExpanded: true, items: ["A", "B", "C", "A & B", "A & C", "B & C", "All"].map((e) => DropdownMenuItem(value: e, child: Text("Cash Round: $e"))).toList(), onChanged: (v) => setSt(() => cat = v!)),
+          const SizedBox(height: 8),
+          const Text("They will be added as Member. Ch.person can promote them later.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(context, true), child: const Text("ADD MEMBER", style: TextStyle(color: Colors.white))),
+        ],
+      )),
+    );
+    if (ok != true) return;
+
+    String name = nameC.text.trim();
+    if (name.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Enter Full Name first")));
+      return;
+    }
+
+    // Check duplicate - same name already exists?
+    var check = await FirebaseFirestore.instance.collection('members').where('fullName_lower', isEqualTo: norm(name)).limit(1).get();
+    if (check.docs.isNotEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name already exists - not added again."), backgroundColor: Colors.orange));
+      return;
+    }
+
+    await FirebaseFirestore.instance.collection('members').add({
+      'fullName': name,
+      'fullName_lower': norm(name),
+      'phone': phoneC.text.trim(),
+      'category': cat,
+      'role': 'Member',
+      'noSmartphone': true,
+      'addedBy': widget.currentUser['fullName'],
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ $name added to Group $cat - No Smartphone. Now appears in App!"), backgroundColor: Colors.green, duration: const Duration(seconds: 3)));
+  }
   // FIX 5 - ONE TIME CLEAN - Delete duplicate by NAME, keep first one
   Future<void> cleanDuplicates() async {
     ScaffoldMessenger.of(context).showSnackBar(
