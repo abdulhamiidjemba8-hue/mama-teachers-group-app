@@ -774,10 +774,10 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
           ], // closes Row children [
         ), // closes Row(
       ), // closes ListTile(
-    ), // closes Card(
+    ); // closes Card(
         }), // closes .map((d) {
       ], // closes ListView children [
-    ), // closes ListView(
+    ); // closes ListView(
   }, // closes builder
   ); // closes StreamBuilder(
 } // closes buildSecretary
