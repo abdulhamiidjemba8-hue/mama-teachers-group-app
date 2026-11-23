@@ -771,11 +771,10 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
               },
               child: Text(complete ? "ADD MORE" : "RECORD"),
             ),
-          ));
-        }),
-      ]);
-    },
-  );
+      ],
+    ),
+  ),
+),
 }
   Future<void> markPaid(String mid, String name) async {
     if (!isExec) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Only Ch.person, Secretary or Treasure can mark cash paid"))); return; }
