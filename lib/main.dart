@@ -527,6 +527,13 @@ class _GeneralSettings extends State<GeneralSettings> {
             ),
           ),
           const SizedBox(height: 8),
+  SizedBox(width: double.infinity, child: ElevatedButton.icon(
+  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+  icon: const Icon(Icons.person_add, color: Colors.white),
+  label: const Text("ADD NEW MEMBER - No Smartphone", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+  onPressed: addMemberNoPhone,
+)),
+const SizedBox(height: 8),
           // FIX 5 BUTTON - DELETE AFTER ONE USE
 ElevatedButton(
   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
