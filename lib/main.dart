@@ -1207,7 +1207,7 @@ Widget buildReceived(List<QueryDocumentSnapshot> all, Set<String> paidIds) {
       bool allPaid = all.isNotEmpty && paidMembers.length == all.length;
       int target = cashGroups[widget.groupId]!.contribution;
       int totalForReceiver = paidIds.length * target;
-      return StreamBuilder<QuerySnapshot>(
+            return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('cash_round_settings').doc(widget.groupId).snapshots(),
         builder: (ctx2, setSnap) {
           int roundNo = 1;
