@@ -802,31 +802,81 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
     await FirebaseFirestore.instance.collection('cash_payments').doc("${widget.groupId}_${currentRoundId(widget.groupId)}_$mid").delete();
   }
   Future<void> markReceived(String mid, String name, int amt) async {
-  if (!isExec) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Only executives can mark received"))); return; }
-  String r = currentRoundId(widget.groupId);
-  // CHECK 1: Must be PAID first
-  var paidDoc = await FirebaseFirestore.instance.collection('cash_payments').doc("${widget.groupId}_${r}_$mid").get();
-  if (!paidDoc.exists) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name cannot RECEIVE - not yet marked PAID. Secretary must record full payment first.")));
-    return;
+    if (!isExec) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Only executives can mark received"))); return; }
+    String r = currentRoundId(widget.groupId);
+    String gid = widget.groupId;
+
+    // Must be PAID first
+    var paidDoc = await FirebaseFirestore.instance.collection('cash_payments').doc("${gid}_${r}_$mid").get();
+    if (!paidDoc.exists) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name cannot RECEIVE - not yet marked PAID.")));
+      return;
+    }
+    var recDoc = await FirebaseFirestore.instance.collection('cash_received').doc("${gid}_${r}_$mid").get();
+    if (recDoc.exists) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name already received this round.")));
+      return;
+    }
+
+    // 1. TOTAL from ALL who PAID this round
+    var paidSnap = await FirebaseFirestore.instance.collection('cash_payments').where('groupId', isEqualTo: gid).where('roundId', isEqualTo: r).get();
+    int paidCount = paidSnap.docs.length;
+    int total = paidCount * cashGroups[gid]!.contribution;
+
+    // 2. CASH ROUND NUMBER - from settings, default 1
+    var setDoc = await FirebaseFirestore.instance.collection('cash_round_settings').doc(gid).get();
+    int roundNo = (setDoc.data()?['roundNumber'] ?? 1) as int;
+
+    // 3. RECEIVER NUMBER - how many have already received in this round + 1
+    var recSnap = await FirebaseFirestore.instance.collection('cash_received').where('groupId', isEqualTo: gid).where('roundId', isEqualTo: r).get();
+    int receiverNo = recSnap.docs.length + 1;
+
+    await FirebaseFirestore.instance.collection('cash_received').doc("${gid}_${r}_$mid").set({
+      'groupId': gid, 'roundId': r, 'memberId': mid, 'memberName': name,
+      'amount': total,
+      'paidCount': paidCount,
+      'roundNumber': roundNo,
+      'receiverNumber': receiverNo,
+      'receivedAt': FieldValue.serverTimestamp(),
+      'markedBy': widget.currentUser['fullName'],
+    });
+
+    sendPushToGroup(gid, "🎁 Cash RECEIVED - Group $gid", "$name is Receiver No.$receiverNo - received ${fmt(total)} UGX from $paidCount members - Cash Round No.$roundNo", widget.currentUser['fullName']);
+
+    // 4. CHECK IF ROUND FINISHED - Everyone in group has received?
+    var membersSnap = await FirebaseFirestore.instance.collection('members').get();
+    var allInGroup = membersSnap.docs.where((d) => inGroup(d.data() as Map<String, dynamic>, gid)).toList();
+    var recAfter = await FirebaseFirestore.instance.collection('cash_received').where('groupId', isEqualTo: gid).where('roundId', isEqualTo: r).get();
+    if (recAfter.docs.length >= allInGroup.length && allInGroup.isNotEmpty) {
+      // Save this round to PAST and start next round
+      await FirebaseFirestore.instance.collection('cash_round_settings').doc(gid).set({
+        'roundNumber': roundNo + 1,
+        'lastFinishedRound': roundNo,
+        'lastFinishedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("🎉 Cash Round No.$roundNo FINISHED! All received. Round No.${roundNo + 1} started!"), backgroundColor: Colors.green, duration: const Duration(seconds: 4)));
+      return;
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name - Receiver No.$receiverNo - RECEIVED ${fmt(total)} UGX from $paidCount PAID members - Round No.$roundNo")));
   }
-  // CHECK 2: Already received this round?
-  var recDoc = await FirebaseFirestore.instance.collection('cash_received').doc("${widget.groupId}_${r}_$mid").get();
-  if (recDoc.exists) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name already received this round.")));
-    return;
+
+  // UNDO RECEIVED
+  Future<void> unmarkReceived(String mid, String name) async {
+    if (!isExec) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Only executives can undo"))); return; }
+    bool ok = await showDialog(context: context, builder: (_) => AlertDialog(
+      title: Text("Undo Received for $name?"),
+      content: const Text("This will remove the RECEIVED mark. The person will need to be marked again."),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text("UNDO", style: TextStyle(color: Colors.white)))],
+    )) ?? false;
+    if (!ok) return;
+    String r = currentRoundId(widget.groupId);
+    await FirebaseFirestore.instance.collection('cash_received').doc("${widget.groupId}_${r}_$mid").delete();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Undone - $name no longer marked RECEIVED")));
   }
-    await FirebaseFirestore.instance.collection('cash_received').doc("${widget.groupId}_${r}_$mid").set({
-    'groupId': widget.groupId, 'roundId': r, 'memberId': mid, 'memberName': name,
-    'amount': amt, 'receivedAt': FieldValue.serverTimestamp(),
-    'markedBy': widget.currentUser['fullName'],
-  });
-  sendPushToGroup(widget.groupId, "🎁 Cash RECEIVED - Group ${widget.groupId}", "$name received ${fmt(amt)} UGX", widget.currentUser['fullName']);
-  if (!mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name marked RECEIVED - ${fmt(amt)} UGX")));
-  if (!mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name marked RECEIVED - ${fmt(amt)} UGX")));
-}
   Future<void> receipt(String type, String name, int amt) async {
     var w = Material(child: Container(color: Colors.white, padding: const EdgeInsets.all(20), width: 350, child: Column(children: [
       Image.asset('assets/logo.png', width: 80, height: 80, errorBuilder: (_, __, ___) => const Icon(Icons.groups, size: 60, color: Colors.pink)),
