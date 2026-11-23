@@ -770,13 +770,17 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
                 ));
               },
               child: Text(complete ? "ADD MORE" : "RECORD"),
-            ),
-          )); 
-        }),
-      ]);
-    },  
-  );
-  }
+            ), // closes RECORD ElevatedButton
+          ], // closes Row children [
+        ), // closes Row(
+      ), // closes ListTile(
+    ), // closes Card(
+        }), // closes .map((d) {
+      ], // closes ListView children [
+    ), // closes ListView(
+  }, // closes builder
+  ); // closes StreamBuilder(
+} // closes buildSecretary
   Future<void> markPaid(String mid, String name) async {
     if (!isExec) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Only Ch.person, Secretary or Treasure can mark cash paid"))); return; }
     String r = currentRoundId(widget.groupId);
