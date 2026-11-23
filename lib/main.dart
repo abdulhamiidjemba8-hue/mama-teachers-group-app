@@ -714,9 +714,41 @@ Widget buildSecretary(List<QueryDocumentSnapshot> members) {
           return Card(color: complete ? Colors.green[50] : Colors.white, child: ListTile(
             title: Text(m['fullName'] ?? ''),
             subtitle: Text("Paid: ${fmt(soFar)} / ${fmt(target)} UGX ${complete ? '✅ COMPLETE - Can now mark PAID' : '• Remaining: ${fmt(target - soFar)}'}"),
-            trailing: ElevatedButton(
-              onPressed: () {
-                TextEditingController amtC = TextEditingController();
+            trailing: Row(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    // EDIT / FIX button - only shows if already paid something
+    if (soFar > 0)
+      TextButton(
+        onPressed: () {
+          TextEditingController fixC = TextEditingController(text: soFar.toString());
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: Text("Fix cash for ${m['fullName']}"),
+              content: TextField(controller: fixC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Correct total paid (UGX)", border: OutlineInputBorder())),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () async {
+                    int correct = int.tryParse(fixC.text) ?? soFar;
+                    Navigator.pop(context);
+                    await FirebaseFirestore.instance.collection('partial_payments').doc("${widget.groupId}_${currentRoundId(widget.groupId)}_${d.id}").update({'paidSoFar': correct});
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fixed to ${fmt(correct)} for ${m['fullName']}")));
+                  },
+                  child: const Text("FIX", style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+        },
+        child: const Text("FIX", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+      ),
+    ElevatedButton(
+      onPressed: () {
+        TextEditingController amtC = TextEditingController();
                 showDialog(context: context, builder: (_) => AlertDialog(
                   title: Text("Record cash for ${m['fullName']}"),
                   content: Column(mainAxisSize: MainAxisSize.min, children: [
