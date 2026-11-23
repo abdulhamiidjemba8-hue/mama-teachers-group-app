@@ -1195,134 +1195,56 @@ floatingActionButton: tab.index == 6 ? null : FloatingActionButton(
     Padding(padding: const EdgeInsets.all(12), child: Text("Not Paid - ${members.length} - Tap receipt to demand cash", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red))),
     ...members.map((d) { var m = d.data() as Map<String, dynamic>; return Card(child: ListTile(title: Row(children: [Expanded(child: Text(m['fullName'] ?? '')), Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(4)), child: const Text("X", style: TextStyle(color: Colors.white)))]), subtitle: Text("${m['phone']} • Should contribute ${fmt(cashGroups[widget.groupId]!.contribution)} UGX"), trailing: IconButton(icon: const Icon(Icons.receipt_long, color: Colors.red), onPressed: () => receipt("Demanding Receipt - NOT PAID", m['fullName'], cashGroups[widget.groupId]!.contribution)))); }),
   ]);
- Widget buildReceived(List<QueryDocumentSnapshot> all, Set<String> paidIds) {
-  TextEditingController searchC = TextEditingController();
-  String q = ""; // Outside builder so search doesn't reset
-
-  return StatefulBuilder(builder: (ctx, setSt) {
-    // 1. Only PAID members can be searched - from Paid card
-    var paidMembers = all.where((d) => paidIds.contains(d.id)).toList();
-
-    // 2. Names appear ONLY when you type in search
-    var filtered = [];
-    if (q.isNotEmpty) {
-      filtered = paidMembers.where((d) {
-        return ((d.data() as Map<String, dynamic>)['fullName'] ?? '')
-            .toString()
-            .toLowerCase()
-            .contains(q);
-      }).toList();
-    }
-
-    bool allPaid = all.isNotEmpty && paidMembers.length == all.length;
-
-    return Column(children: [
-      // Top status
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        color: allPaid ? Colors.green.shade100 : Colors.orange.shade100,
-        child: Text(
-          allPaid
-              ? "✅ ALL ${all.length} PAID - Now search receiver"
-              : "⏳ ${paidMembers.length} / ${all.length} PAID - Wait for all to pay",
-          style: const TextStyle(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-      ),
-
-      // Search box
-      Padding(
-        padding: const EdgeInsets.all(12),
-        child: TextField(
-          controller: searchC,
-          onChanged: (v) => setSt(() => q = v.toLowerCase()),
-          decoration: InputDecoration(
-            hintText: "Search PAID member to mark as RECEIVED...",
-            prefixIcon: const Icon(Icons.search),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-      ),
-
-      // Instruction when no search yet
-      if (q.isEmpty)
-        const Padding(
-          padding: EdgeInsets.all(20),
-          child: Text("🔍 Type a name above to find the receiver\nOnly PAID members will appear here",
-              textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-        ),
-
-      // No match
-      if (q.isNotEmpty && filtered.isEmpty)
-        const Padding(
-          padding: EdgeInsets.all(20),
-          child: Text("No PAID member matches that name"),
-        ),
-
-      // 3. SEARCH RESULTS LIST - This is where names appear
-      if (q.isNotEmpty && filtered.isNotEmpty)
-        Expanded(
-          child: ListView.builder(
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
-              var d = filtered[index];
-              var m = d.data() as Map<String, dynamic>;
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.green,
-                    child: Text((m['fullName'] ?? '?')[0], style: const TextStyle(color: Colors.white)),
-                  ),
-                  title: Text(m['fullName'] ?? ''),
-                  subtitle: Text("PAID ✅ • ${m['phone'] ?? ''}"),
-                  trailing: ElevatedButton(
-                    onPressed: !allPaid
-                        ? null
-                        : () => markReceived(d.id, m['fullName'], cashGroups[widget.groupId]!.contribution),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: Text(allPaid ? "MARK RECEIVED" : "WAIT", style: const TextStyle(color: Colors.white)),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-
-      const Divider(),
-      const Text("Received This Round - List:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-      const SizedBox(height: 6),
-
-      // 4. RECEIVED LIST - Starts building here after you mark received
-      Expanded(
-        child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('cash_received').where('groupId', isEqualTo: widget.groupId).where('roundId', isEqualTo: currentRoundId(widget.groupId)).snapshots(),
-          builder: (c, snap) {
-            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-            if (snap.data!.docs.isEmpty) return const Center(child: Text("No one has received cash yet this round"));
-            return ListView.builder(
-              itemCount: snap.data!.docs.length,
-              itemBuilder: (context, i) {
-                var d = snap.data!.docs[i];
-                var r = d.data() as Map<String, dynamic>;
-                return Card(
-                  color: Colors.green[50],
-                  child: ListTile(
-                    leading: const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.check, color: Colors.white)),
-                    title: Text("${r['memberName']} - RECEIVED ✅"),
-                    subtitle: Text("Cash Received: ${fmt(r['amount'])} UGX"),
-                    trailing: IconButton(icon: const Icon(Icons.receipt), onPressed: () => receipt("Received Receipt - Cash Round", r['memberName'], r['amount'])),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
-    ]);
-  });
-}     
+Widget buildReceived(List<QueryDocumentSnapshot> all, Set<String> paidIds) {
+    TextEditingController searchC = TextEditingController();
+    String q = "";
+    return StatefulBuilder(builder: (ctx, setSt) {
+      var paidMembers = all.where((d) => paidIds.contains(d.id)).toList();
+      var filtered = [];
+      if (q.isNotEmpty) {
+        filtered = paidMembers.where((d) => ((d.data() as Map<String, dynamic>)['fullName'] ?? '').toString().toLowerCase().contains(q)).toList();
+      }
+      bool allPaid = all.isNotEmpty && paidMembers.length == all.length;
+      int target = cashGroups[widget.groupId]!.contribution;
+      int totalForReceiver = paidIds.length * target;
+      return StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('cash_round_settings').doc(widget.groupId).snapshots(),
+        builder: (ctx2, setSnap) {
+          int roundNo = 1;
+          if (setSnap.hasData && setSnap.data!.exists) {
+            roundNo = (setSnap.data!.data() as Map<String, dynamic>)['roundNumber'] ?? 1;
+          }
+          return Column(children: [
+            Container(width: double.infinity, padding: const EdgeInsets.all(12), color: allPaid ? Colors.green.shade100 : Colors.orange.shade100, child: Column(children: [
+              Text(allPaid ? "✅ ALL ${all.length} PAID - Now search receiver" : "⏳ ${paidMembers.length} / ${all.length} PAID - Wait for all to pay", style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+              const SizedBox(height: 4),
+              Text("🎁 Cash Round No.$roundNo • Total to Receive: ${fmt(totalForReceiver)} UGX (${paidIds.length} PAID x ${fmt(target)})", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green), textAlign: TextAlign.center),
+            ])),
+            Padding(padding: const EdgeInsets.all(12), child: TextField(controller: searchC, onChanged: (v) => setSt(() => q = v.toLowerCase()), decoration: InputDecoration(hintText: "Search PAID member to mark as RECEIVED...", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))))),
+            if (q.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text("🔍 Type a name above to find the receiver\nOnly PAID members will appear here", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey))),
+            if (q.isNotEmpty && filtered.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text("No PAID member matches that name")),
+            if (q.isNotEmpty && filtered.isNotEmpty)
+              Expanded(child: ListView.builder(itemCount: filtered.length, itemBuilder: (context, index) {
+                var d = filtered[index];
+                var m = d.data() as Map<String, dynamic>;
+                return Card(margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), child: ListTile(leading: CircleAvatar(backgroundColor: Colors.green, child: Text((m['fullName'] ?? '?')[0], style: const TextStyle(color: Colors.white))), title: Text(m['fullName'] ?? ''), subtitle: Text("PAID ✅ • Will RECEIVE ${fmt(totalForReceiver)} UGX • Round No.$roundNo"), trailing: ElevatedButton(onPressed: !allPaid ? null : () => markReceived(d.id, m['fullName'], target), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: Text(allPaid ? "MARK RECEIVED" : "WAIT", style: const TextStyle(color: Colors.white)))));
+              })),
+            const Divider(),
+            const Text("Received This Round - List:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 6),
+            Expanded(child: StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('cash_received').where('groupId', isEqualTo: widget.groupId).where('roundId', isEqualTo: currentRoundId(widget.groupId)).snapshots(), builder: (c, snap) {
+              if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+              if (snap.data!.docs.isEmpty) return const Center(child: Text("No one has received cash yet this round"));
+              return ListView.builder(itemCount: snap.data!.docs.length, itemBuilder: (context, i) {
+                var r = snap.data!.docs[i].data() as Map<String, dynamic>;
+                return Card(color: Colors.green[50], child: ListTile(leading: const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.check, color: Colors.white)), title: Text("${r['memberName']} - RECEIVED ✅"), subtitle: Text("Cash Received: ${fmt((r['amount'] ?? 0) as int)} UGX\nReceiver No.${r['receiverNumber'] ?? '-'} • Round No.${r['roundNumber'] ?? roundNo} • From ${r['paidCount'] ?? '-'} PAID"), isThreeLine: true, trailing: Row(mainAxisSize: MainAxisSize.min, children: [IconButton(icon: const Icon(Icons.receipt), onPressed: () => receipt("Received Receipt - Cash Round", r['memberName'], (r['amount'] ?? 0) as int)), if (isExec) TextButton.icon(icon: const Icon(Icons.undo, color: Colors.red, size: 18), label: const Text("UNDO", style: TextStyle(color: Colors.red)), onPressed: () => unmarkReceived(snap.data!.docs[i].data() as Map<String, dynamic> == null ? '' : (r['memberId'] ?? ''), r['memberName'] ?? ''))])));
+              });
+            })),
+          ]);
+        },
+      );
+    });
+  }    
   Widget buildPast() {
     String cur = currentRoundId(widget.groupId);
     return StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('cash_payments').where('groupId', isEqualTo: widget.groupId).snapshots(), builder: (c, snap) {
