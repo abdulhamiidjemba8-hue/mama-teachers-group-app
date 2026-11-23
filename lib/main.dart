@@ -1246,15 +1246,40 @@ Widget buildReceived(List<QueryDocumentSnapshot> all, Set<String> paidIds) {
     });
   }    
   Widget buildPast() {
-    String cur = currentRoundId(widget.groupId);
-    return StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('cash_payments').where('groupId', isEqualTo: widget.groupId).snapshots(), builder: (c, snap) {
-      if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-      var past = snap.data!.docs.where((d) => (d.data() as Map<String, dynamic>)['roundId'] != cur).toList();
-      if (past.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No past cash rounds yet.\nWhen a round ends, cash data moves here automatically.", textAlign: TextAlign.center)));
-      Map<String, List<QueryDocumentSnapshot>> by = {};
-      for (var d in past) { var p = (d.data() as Map<String, dynamic>)['roundId'] ?? 'old'; by.putIfAbsent(p, () => []).add(d); }
-      return ListView(children: by.entries.map((e) => ExpansionTile(title: Text("Cash Round: ${e.key} - ${e.value.length} paid"), children: e.value.map((d) { var m = d.data() as Map<String, dynamic>; return ListTile(title: Text(m['memberName'] ?? ''), subtitle: Text("${fmt(m['amount'])} UGX")); }).toList())).toList());
-    });
+    String currentR = currentRoundId(widget.groupId);
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('cash_received').where('groupId', isEqualTo: widget.groupId).orderBy('receivedAt', descending: true).snapshots(),
+      builder: (ctx, recSnap) {
+        if (!recSnap.hasData) return const Center(child: CircularProgressIndicator());
+        Map<String, List<Map<String, dynamic>>> byRound = {};
+        for (var d in recSnap.data!.docs) {
+          var v = d.data() as Map<String, dynamic>;
+          String key = "${v['roundNumber'] ?? 1}__${v['roundId'] ?? ''}";
+          byRound.putIfAbsent(key, () => []).add(v);
+        }
+        var keys = byRound.keys.where((k) => !k.endsWith("__$currentR")).toList();
+        keys.sort((a, b) => int.parse(b.split("__")[0]).compareTo(int.parse(a.split("__")[0])));
+        if (keys.isEmpty) {
+          return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No past rounds yet.\nFinish Cash Round No.1 and it will appear here.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 16))));
+        }
+        return ListView(children: [
+          const Padding(padding: EdgeInsets.all(12), child: Text("📚 PAST CASH ROUNDS - Finished", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17))),
+          ...keys.map((key) {
+            var list = byRound[key]!;
+            int roundNo = int.parse(key.split("__")[0]);
+            String roundId = key.split("__")[1];
+            int totalGiven = 0;
+            for (var v in list) { totalGiven += ((v['amount'] ?? 0) as int); }
+            return Card(color: Colors.grey[100], child: ExpansionTile(
+              leading: CircleAvatar(backgroundColor: Colors.purple, child: Text("$roundNo", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+              title: Text("Cash Round No.$roundNo", style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text("Date: $roundId • ${list.length} receiver(s) • Total: ${fmt(totalGiven)} UGX"),
+              children: list.map((v) => ListTile(leading: const Icon(Icons.card_giftcard, color: Colors.green), title: Text("${v['memberName']} - Receiver No.${v['receiverNumber'] ?? '-'}"), subtitle: Text("Received ${fmt((v['amount'] ?? 0) as int)} UGX from ${v['paidCount'] ?? '-'} PAID members"), trailing: const Icon(Icons.check_circle, color: Colors.green))).toList(),
+            ));
+          }),
+        ]);
+      },
+    );
   }
   Future<void> markChatAsRead() async {
   try {
